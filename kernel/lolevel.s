@@ -14,6 +14,8 @@ lolevel_handler_rst: bl    int_init                @ initialise interrupt vector
                      msr   cpsr, #0xD3             @ enter SVC mode with IRQ and FIQ interrupts disabled
                      ldr   sp, =tos_svc            @ initialise SVC mode stack
 
+                     mov   r0, sp                  @ set    high-level C function arg. = SP
+                     
                      bl    hilevel_handler_rst     @ invoke high-level C function
                      b     .                       @ halt
 
@@ -31,4 +33,4 @@ lolevel_handler_svc: sub   lr, lr, #0              @ correct return address
                      bl    hilevel_handler_svc     @ invoke high-level C function
 
                      ldmfd sp!, { r0-r3, ip, lr }  @ restore caller-save registers
-                     movs  pc, lr                  @ return from interrupt 
+                     movs  pc, lr                  @ return from interrupt

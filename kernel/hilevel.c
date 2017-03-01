@@ -105,7 +105,7 @@ void hilevel_handler_irq(ctx_t* ctx) {
 
   if( id == GIC_SOURCE_TIMER0 ) {
     PL011_putc( UART0, 'T', true ); TIMER0->Timer1IntClr = 0x01;
-
+    scheduler(ctx);
   }
 
   // Step 5: write the interrupt identifier to signal we're done.

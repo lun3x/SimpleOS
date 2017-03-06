@@ -9,7 +9,7 @@
  *   can be created, and neither is able to complete.
  */
 
-pcb_t pcb[ 3 ], *current = NULL;
+pcb_t pcb[ 4 ], *current = NULL;
 
 extern void     main_P3();
 extern uint32_t tos_P3;
@@ -17,6 +17,8 @@ extern void     main_P4();
 extern uint32_t tos_P4;
 extern void     main_P5();
 extern uint32_t tos_P5;
+extern void     main_console();
+extern uint32_t tos_console;
 
 void scheduler( ctx_t* ctx ) {
   if      ( current == &pcb[ 0 ] ) {
@@ -85,11 +87,17 @@ void hilevel_handler_rst(ctx_t* ctx) {
   pcb[ 2 ].ctx.pc   = ( uint32_t )( &main_P5 );
   pcb[ 2 ].ctx.sp   = ( uint32_t )( &tos_P5  );
 
+  memset( &pcb[ 3 ], 0, sizeof( pcb_t ) );
+  pcb[ 3 ].pid      = 4;
+  pcb[ 3 ].ctx.cpsr = 0x50;
+  pcb[ 3 ].ctx.pc   = ( uint32_t )( &main_console );
+  pcb[ 3 ].ctx.sp   = ( uint32_t )( &tos_console  );
+
   /* Once the PCBs are initialised, we (arbitrarily) select one to be
    * restored (i.e., executed) when the function then returns.
    */
 
-  current = &pcb[ 0 ]; memcpy( ctx, &current->ctx, sizeof( ctx_t ) );
+  current = &pcb[ 3 ]; memcpy( ctx, &current->ctx, sizeof( ctx_t ) );
 
   int_enable_irq();
 

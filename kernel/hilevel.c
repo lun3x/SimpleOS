@@ -11,6 +11,13 @@
 
 pcb_t pcb[ 3 ], *current = NULL;
 
+extern void     main_P3();
+extern uint32_t tos_P3;
+extern void     main_P4();
+extern uint32_t tos_P4;
+extern void     main_P5();
+extern uint32_t tos_P5;
+
 void scheduler( ctx_t* ctx ) {
   if      ( current == &pcb[ 0 ] ) {
     memcpy( &pcb[ 0 ].ctx, ctx, sizeof( ctx_t ) ); // preserve P_1
@@ -30,13 +37,6 @@ void scheduler( ctx_t* ctx ) {
 
   return;
 }
-
-extern void     main_P3();
-extern uint32_t tos_P3;
-extern void     main_P4();
-extern uint32_t tos_P4;
-extern void     main_P5();
-extern uint32_t tos_P5;
 
 void hilevel_handler_rst(ctx_t* ctx) {
   /* Configure the mechanism for interrupt handling by
@@ -97,6 +97,7 @@ void hilevel_handler_rst(ctx_t* ctx) {
 }
 
 void hilevel_handler_irq(ctx_t* ctx) {
+  int_unable_irq();
   // Step 2: read  the interrupt identifier so we know the source.
 
   uint32_t id = GICC0->IAR;
@@ -105,16 +106,47 @@ void hilevel_handler_irq(ctx_t* ctx) {
 
   if( id == GIC_SOURCE_TIMER0 ) {
     PL011_putc( UART0, 'T', true ); TIMER0->Timer1IntClr = 0x01;
-    scheduler(ctx);
+    scheduler( ctx );
+    TIMER0->Timer1IntClr = 0x01;
   }
 
   // Step 5: write the interrupt identifier to signal we're done.
-
   GICC0->EOIR = id;
 
+  int_enable_irq();
   return;
 }
 
-void hilevel_handler_svc() {
+void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
+  /* Based on the identified encoded as an immediate operand in the
+   * instruction,
+   *
+   * - read  the arguments from preserved usr mode registers,
+   * - perform whatever is appropriate for this system call,
+   * - write any return value back to preserved usr mode registers.
+   */
+
+  switch( id ) {
+    case 0x00 : { // 0x00 => yield()
+      scheduler( ctx );
+      break;
+    }
+    case 0x01 : { // 0x01 => write( fd, x, n )
+      int   fd = ( int   )( ctx->gpr[ 0 ] );
+      char*  x = ( char* )( ctx->gpr[ 1 ] );
+      int    n = ( int   )( ctx->gpr[ 2 ] );
+
+      for( int i = 0; i < n; i++ ) {
+        PL011_putc( UART0, *x++, true );
+      }
+
+      ctx->gpr[ 0 ] = n;
+      break;
+    }
+    default   : { // 0x?? => unknown/unsupported
+      break;
+    }
+  }
+
   return;
 }

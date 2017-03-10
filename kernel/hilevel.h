@@ -29,15 +29,27 @@
  * - a type that captures a process PCB.
  */
 
+#define MAX_PROGS  10
+#define STACK_SIZE 0x00005000
+
 typedef int pid_t;
 
 typedef struct {
   uint32_t cpsr, pc, gpr[ 13 ], sp, lr;
 } ctx_t;
 
+typedef enum {
+  CREATED,
+  READY,
+  EXECUTING,
+  WAITING,
+  TERMINATED
+} status_t;
+
 typedef struct {
   pid_t pid;
   ctx_t ctx;
+  status_t status;
 } pcb_t;
 
 #endif

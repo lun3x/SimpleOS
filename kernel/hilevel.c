@@ -9,35 +9,75 @@
  *   can be created, and neither is able to complete.
  */
 
-pcb_t pcb[ 4 ], *current = NULL;
+static const char zero_block[100];
+
+pcb_t pcb[ MAX_PROGS ], *current = NULL;
+pid_t max_pid = 0;
 
 extern void     main_P3();
-extern uint32_t tos_P3;
 extern void     main_P4();
-extern uint32_t tos_P4;
 extern void     main_P5();
-extern uint32_t tos_P5;
 extern void     main_console();
 extern uint32_t tos_console;
 
-void scheduler( ctx_t* ctx ) {
-  if      ( current == &pcb[ 0 ] ) {
-    memcpy( &pcb[ 0 ].ctx, ctx, sizeof( ctx_t ) ); // preserve P_1
-    memcpy( ctx, &pcb[ 1 ].ctx, sizeof( ctx_t ) ); // restore  P_2
-    current = &pcb[ 1 ];
-  }
-  else if ( current == &pcb[ 1 ] ) {
-    memcpy( &pcb[ 1 ].ctx, ctx, sizeof( ctx_t ) ); // preserve P_2
-    memcpy( ctx, &pcb[ 2 ].ctx, sizeof( ctx_t ) ); // restore  P_3
-    current = &pcb[ 2 ];
-  }
-  else if ( current == &pcb[ 2 ] ) {
-    memcpy( &pcb[ 2 ].ctx, ctx, sizeof( ctx_t ) ); // preserve P_3
-    memcpy( ctx, &pcb[ 0 ].ctx, sizeof( ctx_t ) ); // restore  P_1
-    current = &pcb[ 0 ];
+int find_pcb_index(pid_t pid) { // find pcb index from pid
+  for (int i = 0; i < MAX_PROGS; i++) {
+    if (pcb[i].pid == pid) {
+      return i;
+    }
   }
 
+  return -1; // return error if program not found (?)
+}
+
+int find_next_pcb_index() {
+  return (find_pcb_index(current->pid) + 1) % MAX_PROGS;
+}
+
+// scheduler, round-robin approach
+void scheduler(ctx_t* ctx) {
+  int pcd_index = find_pcb_index(current->pid);          // get current program's place in pcb table
+  memcpy( &pcb[ pcd_index ].ctx, ctx, sizeof( ctx_t ) ); // save current program to its place in pcb table
+
+  int next_pcb_index = find_next_pcb_index();                 // find index of next program to be executed
+  memcpy( ctx, &pcb[ next_pcb_index ].ctx, sizeof( ctx_t ) ); // copy this into context passed in
+
+  current = &pcb[ next_pcb_index ]; // point the current pointer to the new program to be executed
+
   return;
+}
+
+int find_free_pcb_index() {
+  for (int i = 0; i < MAX_PROGS; i++) {
+    if ( memcmp( &pcb[i], zero_block, sizeof(pcb_t) ) == 0 /*pcb[i] == 0*/ || pcb[i].status == TERMINATED) {
+      return i; // return index of free pcb
+    }
+  }
+
+  return -1; // return error if no free pcbs
+}
+
+int scheduler_fork( ctx_t* ctx ) {
+  int free_pcb_index = find_free_pcb_index(); // find where to put new program
+
+  memset( &pcb[ free_pcb_index ], 0, sizeof( pcb_t ) );       // initialise free pcb to 0
+  memcpy( &pcb[ free_pcb_index ], current, sizeof( pcb_t ) ); // copy current pcb to new pcb to make exact copy
+
+  pcb[ free_pcb_index ].pid = max_pid; // update new process in pcb table with max pid
+  max_pid++;                           // increment max_pid
+
+  int new_tos     = tos_console + free_pcb_index               * STACK_SIZE; // find tos for new program
+  int current_tos = tos_console + find_pcb_index(current->pid) * STACK_SIZE; // find tos for current program
+
+  int sp_location = current_tos - ctx->sp; // find where in the stack the stack pointer is (dist from current tos)
+
+  pcb[ free_pcb_index ].ctx.sp = new_tos - sp_location; // update the new stack pointer to its correct location in the new stack
+
+  memcpy( (void *) new_tos - STACK_SIZE, (void *) current_tos - STACK_SIZE, STACK_SIZE ); // copy across the current stack into the new stack
+
+  pcb[ free_pcb_index ].ctx.gpr[ 0 ] = 0; // return 0 to child process
+
+  return pcb[ free_pcb_index ].pid; // return pid of child process to parent process
 }
 
 void hilevel_handler_rst(ctx_t* ctx) {
@@ -69,35 +109,25 @@ void hilevel_handler_rst(ctx_t* ctx) {
    * - the PC and SP values matche the entry point and top of stack.
    */
 
+  max_pid = 0; // Initialise max pid
+
+  // Initialise pcb to zeros
+  for (int i = 0; i < MAX_PROGS; i++) {
+    memset( &pcb[i], 0, sizeof( pcb_t ) );
+  }
+
   memset( &pcb[ 0 ], 0, sizeof( pcb_t ) );
-  pcb[ 0 ].pid      = 1;
+  pcb[ 0 ].pid      = max_pid;
   pcb[ 0 ].ctx.cpsr = 0x50;
-  pcb[ 0 ].ctx.pc   = ( uint32_t )( &main_P3 );
-  pcb[ 0 ].ctx.sp   = ( uint32_t )( &tos_P3  );
-
-  memset( &pcb[ 1 ], 0, sizeof( pcb_t ) );
-  pcb[ 1 ].pid      = 2;
-  pcb[ 1 ].ctx.cpsr = 0x50;
-  pcb[ 1 ].ctx.pc   = ( uint32_t )( &main_P4 );
-  pcb[ 1 ].ctx.sp   = ( uint32_t )( &tos_P4  );
-
-  memset( &pcb[ 2 ], 0, sizeof( pcb_t ) );
-  pcb[ 2 ].pid      = 3;
-  pcb[ 2 ].ctx.cpsr = 0x50;
-  pcb[ 2 ].ctx.pc   = ( uint32_t )( &main_P5 );
-  pcb[ 2 ].ctx.sp   = ( uint32_t )( &tos_P5  );
-
-  memset( &pcb[ 3 ], 0, sizeof( pcb_t ) );
-  pcb[ 3 ].pid      = 4;
-  pcb[ 3 ].ctx.cpsr = 0x50;
-  pcb[ 3 ].ctx.pc   = ( uint32_t )( &main_console );
-  pcb[ 3 ].ctx.sp   = ( uint32_t )( &tos_console  );
+  pcb[ 0 ].ctx.pc   = ( uint32_t )( &main_console );
+  pcb[ 0 ].ctx.sp   = ( uint32_t )( &tos_console  );
+  max_pid++;
 
   /* Once the PCBs are initialised, we (arbitrarily) select one to be
    * restored (i.e., executed) when the function then returns.
    */
 
-  current = &pcb[ 3 ]; memcpy( ctx, &current->ctx, sizeof( ctx_t ) );
+  current = &pcb[ 0 ]; memcpy( ctx, &current->ctx, sizeof( ctx_t ) );
 
   int_enable_irq();
 
@@ -149,6 +179,10 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
       }
 
       ctx->gpr[ 0 ] = n;
+      break;
+    }
+    case 0x03: { // 0x00 => fork()
+      ctx->gpr[ 0 ] = scheduler_fork( ctx );
       break;
     }
     default   : { // 0x?? => unknown/unsupported

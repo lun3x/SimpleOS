@@ -20,7 +20,9 @@ extern void     main_P5();
 extern void     main_console();
 extern uint32_t tos_console;
 
-int find_pcb_index(pid_t pid) { // find pcb index from pid
+
+// find pcb index from pid
+int find_pcb_index(pid_t pid) {
   for (int i = 0; i < MAX_PROGS; i++) {
     if (pcb[i].pid == pid) {
       return i;
@@ -30,14 +32,17 @@ int find_pcb_index(pid_t pid) { // find pcb index from pid
   return -1; // return error if program not found (?)
 }
 
+
+// return the next index in the pcb
 int find_next_pcb_index() {
   return (find_pcb_index(current->pid) + 1) % MAX_PROGS;
 }
 
+
 // scheduler, round-robin approach
 void scheduler(ctx_t* ctx) {
-  int pcd_index = find_pcb_index(current->pid);          // get current program's place in pcb table
-  memcpy( &pcb[ pcd_index ].ctx, ctx, sizeof( ctx_t ) ); // save current program to its place in pcb table
+  int pcb_index = find_pcb_index(current->pid);          // get current program's place in pcb table
+  memcpy( &pcb[ pcb_index ].ctx, ctx, sizeof( ctx_t ) ); // save current program to its place in pcb table
 
   int next_pcb_index = find_next_pcb_index();                 // find index of next program to be executed
   memcpy( ctx, &pcb[ next_pcb_index ].ctx, sizeof( ctx_t ) ); // copy this into context passed in
@@ -47,6 +52,8 @@ void scheduler(ctx_t* ctx) {
   return;
 }
 
+
+// return the next free index int the pcb
 int find_free_pcb_index() {
   for (int i = 0; i < MAX_PROGS; i++) {
     if ( memcmp( &pcb[i], zero_block, sizeof(pcb_t) ) == 0 /*pcb[i] == 0*/ || pcb[i].status == TERMINATED) {
@@ -57,10 +64,11 @@ int find_free_pcb_index() {
   return -1; // return error if no free pcbs
 }
 
-int scheduler_fork( ctx_t* ctx ) {
+
+int hilevel_fork( ctx_t* ctx ) {
   int free_pcb_index = find_free_pcb_index(); // find where to put new program
 
-  memset( &pcb[ free_pcb_index ], 0, sizeof( pcb_t ) );       // initialise free pcb to 0
+  memset( &pcb[ free_pcb_index ], 0, sizeof( pcb_t ) );       // initialise free pcb to zeros
   memcpy( &pcb[ free_pcb_index ], current, sizeof( pcb_t ) ); // copy current pcb to new pcb to make exact copy
 
   pcb[ free_pcb_index ].pid = max_pid; // update new process in pcb table with max pid
@@ -80,7 +88,22 @@ int scheduler_fork( ctx_t* ctx ) {
   return pcb[ free_pcb_index ].pid; // return pid of child process to parent process
 }
 
-void hilevel_handler_rst(ctx_t* ctx) {
+
+// clear stack
+// set sp to start of stack
+// reset gprs
+// pc to passed in stack value
+void hilevel_exec( ctx_t* ctx ) {
+  int current_tos = tos_console + find_pcb_index(current->pid) * STACK_SIZE; // get current top of stack
+  memset( (void *) current_tos - STACK_SIZE, 0, STACK_SIZE);                 // initialise stack to zeros
+  ctx->sp = current_tos - STACK_SIZE; // initialise stack pointer to start of stack //TODO maybe top of stack?
+  ctx->pc = ctx->gpr[ 0 ];            // set pc to entry point of new function
+
+  memset( &ctx->gpr, 0, sizeof(uint32_t) * 13 ); // initialise registers to 0
+}
+
+
+void hilevel_handler_rst( ctx_t* ctx ) {
   /* Configure the mechanism for interrupt handling by
    *
    * - configuring timer st. it raises a (periodic) interrupt for each
@@ -134,7 +157,8 @@ void hilevel_handler_rst(ctx_t* ctx) {
   return;
 }
 
-void hilevel_handler_irq(ctx_t* ctx) {
+
+void hilevel_handler_irq( ctx_t* ctx ) {
   int_unable_irq();
   // Step 2: read  the interrupt identifier so we know the source.
 
@@ -154,6 +178,7 @@ void hilevel_handler_irq(ctx_t* ctx) {
   int_enable_irq();
   return;
 }
+
 
 void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
   /* Based on the identified encoded as an immediate operand in the
@@ -182,7 +207,13 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
       break;
     }
     case 0x03: { // 0x00 => fork()
-      ctx->gpr[ 0 ] = scheduler_fork( ctx );
+      ctx->gpr[ 0 ] = hilevel_fork( ctx );
+      break;
+    }
+    case 0x04: { //0x04 => exit()
+    }
+    case 0x05: { // 0x05 => exec()
+      hilevel_exec( ctx );
       break;
     }
     default   : { // 0x?? => unknown/unsupported

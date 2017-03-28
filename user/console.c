@@ -17,7 +17,8 @@ void gets( char* x, int n ) {
     x[ i ] = PL011_getc( UART1, true );
 
     if( x[ i ] == '\x0A' ) {
-      x[ i ] = '\x00'; break;
+      x[ i ] = '\x00';
+      break;
     }
   }
 }
@@ -58,17 +59,24 @@ void main_console() {
   char* p, x[ 1024 ];
 
   while( 1 ) {
-    puts( "shell$ ", 7 ); gets( x, 1024 ); p = strtok( x, " " );
+    puts( "shell$ ", 7 );
+    gets( x, 1024 );
+    p = strtok( x, " " );
 
-    if     ( 0 == strcmp( p, "fork" ) ) {
+    write( STDOUT_FILENO, "t", 1 );
+
+    if ( 0 == strcmp( p, "fork" ) ) {
       pid_t pid = fork();
+      // char* string = " ";
+      // itoa( string, pid );
+      // puts( string, 1 );
 
-      if( 0 == pid ) {
+      if ( 0 == pid ) {
         void* addr = load( strtok( NULL, " " ) );
         exec( addr );
       }
     }
-    else if( 0 == strcmp( p, "kill" ) ) {
+    else if ( 0 == strcmp( p, "kill" ) ) {
       pid_t pid = atoi( strtok( NULL, " " ) );
       int   s   = atoi( strtok( NULL, " " ) );
 

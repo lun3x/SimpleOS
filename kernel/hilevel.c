@@ -9,8 +9,6 @@
  *   can be created, and neither is able to complete.
  */
 
-//static const char zero_block[100]; // to compare block of memory to 0
-
 // set of program control blocks, pointer to current pcb
 pcb_t pcb[ MAX_PROGS ], *current = NULL;
 
@@ -53,6 +51,8 @@ int find_next_pcb_index() {
   return index;
 }
 
+
+// increase priority of all processes not currently executing
 void age_processes(int current_pcb_index) {
   for (int i = 0; i < MAX_PROGS; i++) {
     if (i != current_pcb_index && pcb[i].status == EXECUTING) {
@@ -92,7 +92,7 @@ int find_free_pcb_index() {
 }
 
 
-
+// create new child process identical to parent
 void hilevel_fork( ctx_t *ctx ) {
   int free_pcb_index = find_free_pcb_index(); // find where to put new program
 
@@ -121,17 +121,14 @@ void hilevel_fork( ctx_t *ctx ) {
 }
 
 
-// clear stack
-// set sp to start of stack
-// set pc to passed in stack value
-// reset gprs
+// load new program image to be executed
 void hilevel_exec( ctx_t* ctx ) {
   int current_tos = (int) &tos_user_progs - find_pcb_index(current->pid) * STACK_SIZE; // get current top of stack
 
-  memset( (void *) current_tos - STACK_SIZE, 0, STACK_SIZE);                    // initialise stack to zeros for security
+  memset( (void *) current_tos - STACK_SIZE, 0, STACK_SIZE); // initialise stack to zeros for security
 
-  ctx->sp = current_tos;            // initialise stack pointer to start of stack
-  ctx->pc = ctx->gpr[ 0 ];          // set pc to entry point of new function
+  ctx->sp = current_tos;   // initialise stack pointer to start of stack
+  ctx->pc = ctx->gpr[ 0 ]; // set pc to entry point of new function
 
   for (int i = 0; i < 13; i++) { // set gprs to 0 for security
     ctx->gpr[ i ] = 0;
@@ -147,6 +144,7 @@ void hilevel_exit( ctx_t* ctx ) {
 }
 
 
+// handle reset interrupt calls
 void hilevel_handler_rst( ctx_t* ctx ) {
   /* Configure the mechanism for interrupt handling by
    *
@@ -205,6 +203,7 @@ void hilevel_handler_rst( ctx_t* ctx ) {
 }
 
 
+// handle irq interrupt calls
 void hilevel_handler_irq( ctx_t* ctx ) {
   // step 1: disable irq interrupts
   int_unable_irq();
@@ -239,6 +238,7 @@ void hilevel_handler_irq( ctx_t* ctx ) {
 }
 
 
+// handle supervisor interrupt calls
 void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
   /* Based on the identified encoded as an immediate operand in the
    * instruction,

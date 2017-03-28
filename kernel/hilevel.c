@@ -41,26 +41,36 @@ int find_pcb_index(pid_t pid) {
 
 // return the next program to be executed in the pcb
 int find_next_pcb_index() {
-  int current_index = find_pcb_index(current->pid);
+  int max_priority = 0, index = 0;
 
-  for (int i = 1; i < MAX_PROGS; i++) {
-    int next_index = (current_index + i) % MAX_PROGS;
-    if (pcb[ next_index ].status == EXECUTING) {
-      return next_index;
+  for (int i = 0; i < MAX_PROGS; i++) {
+    if (pcb[i].status == EXECUTING && pcb[i].priority >= max_priority) {
+      max_priority = pcb[i].priority;
+      index = i;
     }
   }
 
-  return -1;
+  return index;
+}
+
+void age_processes(int current_pcb_index) {
+  for (int i = 0; i < MAX_PROGS; i++) {
+    if (i != current_pcb_index && pcb[i].status == EXECUTING) {
+      pcb[i].priority++;
+    }
+  }
 }
 
 
 // scheduler, round-robin approach
 void scheduler(ctx_t* ctx) {
-  int next_pcb_index = find_next_pcb_index();                   // find index of next program to be executed (if it exists)
+  int current_pcb_index = find_pcb_index(current->pid);  // find current program index
+  int next_pcb_index = find_next_pcb_index();            // find index of next program to be executed (if it exists)
 
-  if (next_pcb_index >= 0) {                                    // if there is another program to execute
-    int pcb_index = find_pcb_index(current->pid);               // get current program's place in pcb table
-    memcpy( &pcb[ pcb_index ].ctx, ctx, sizeof( ctx_t ) );      // save current program to its place in pcb table
+  age_processes(current_pcb_index);
+
+  if (next_pcb_index != current_pcb_index) {                        // if there is another program to execute
+    memcpy( &pcb[ current_pcb_index ].ctx, ctx, sizeof( ctx_t ) );  // save current program to its place in pcb table
 
     memcpy( ctx, &pcb[ next_pcb_index ].ctx, sizeof( ctx_t ) ); // copy the context in the index of the new program into context passed in
     current = &pcb[ next_pcb_index ];                           // point the current pointer to the new program to be executed
@@ -82,26 +92,28 @@ int find_free_pcb_index() {
 }
 
 
-void hilevel_fork( ctx_t* ctx ) {
+
+void hilevel_fork( ctx_t *ctx ) {
   int free_pcb_index = find_free_pcb_index(); // find where to put new program
 
   memcpy( &pcb[ free_pcb_index ].ctx, ctx, sizeof( ctx_t ) ); // copy current ctx to new pcb ctx to make exact copy
 
-  pcb[ free_pcb_index ].pid = max_pid;    // update new process in pcb table with max pid
-  max_pid++;                              // increment max_pid
+  pcb[ free_pcb_index ].pid = max_pid;          // update new process in pcb table with max pid
+  pcb[ free_pcb_index ].priority = ctx->gpr[0]; // update new process with correct priority
+  max_pid++;                                    // increment max_pid
 
   int new_tos     = (int) &tos_user_progs - free_pcb_index               * STACK_SIZE; // find tos for new program
   int current_tos = (int) &tos_user_progs - find_pcb_index(current->pid) * STACK_SIZE; // find tos for current program
 
   int sp_location = current_tos - ctx->sp; // find where in the stack the stack pointer is (dist from current tos)
 
-  pcb[ free_pcb_index ].ctx.sp = new_tos; // - sp_location; // update the new stack pointer to its correct location in the new stack
+  pcb[ free_pcb_index ].ctx.sp = new_tos - sp_location; // update the new stack pointer to its correct location in the new stack
 
   memcpy( (void *) new_tos - STACK_SIZE, (void *) current_tos - STACK_SIZE, STACK_SIZE ); // copy across the current stack into the new stack
 
   pcb[ free_pcb_index ].ctx.gpr[ 0 ] = 0; // return 0 to child process
 
-  ctx->gpr[0] = pcb[ free_pcb_index ].pid; // return pid of child process to parent process
+  ctx->gpr[ 0 ] = pcb[ free_pcb_index ].pid; // return pid of child process to parent process
 
   pcb[ free_pcb_index ].status = EXECUTING; // set status of new process to EXECUTING
 
@@ -111,17 +123,19 @@ void hilevel_fork( ctx_t* ctx ) {
 
 // clear stack
 // set sp to start of stack
+// set pc to passed in stack value
 // reset gprs
-// pc to passed in stack value
 void hilevel_exec( ctx_t* ctx ) {
-  PL011_putc( UART0, 'E', true );
+  int current_tos = (int) &tos_user_progs - find_pcb_index(current->pid) * STACK_SIZE; // get current top of stack
 
-  int current_tos = &tos_user_progs - find_pcb_index(current->pid) * STACK_SIZE; // get current top of stack
+  memset( (void *) current_tos - STACK_SIZE, 0, STACK_SIZE);                    // initialise stack to zeros for security
 
-  memset( (void *) current_tos - STACK_SIZE, 0, STACK_SIZE);                    // initialise stack to zeros
+  ctx->sp = current_tos;            // initialise stack pointer to start of stack
+  ctx->pc = ctx->gpr[ 0 ];          // set pc to entry point of new function
 
-  ctx->sp = current_tos;            // initialise stack pointer to start of stack //TODO maybe bottom of stack?
-  ctx->pc = ctx->gpr[ 0 ];            // set pc to entry point of new function
+  for (int i = 0; i < 13; i++) { // set gprs to 0 for security
+    ctx->gpr[ i ] = 0;
+  }
 
   return;
 }
@@ -129,11 +143,7 @@ void hilevel_exec( ctx_t* ctx ) {
 
 // find program in pcb list and remove it
 void hilevel_exit( ctx_t* ctx ) {
-  // set pcb entry corresponding to current program to 0
-  // memset( &pcb[ find_pcb_index(current->pid) ], 0, sizeof(pcb_t));
-
-  // set the status to terminated
-  pcb[ find_pcb_index(current->pid) ].status = TERMINATED;
+  pcb[ find_pcb_index(current->pid) ].status = TERMINATED; // set the status to terminated
 }
 
 
@@ -180,6 +190,7 @@ void hilevel_handler_rst( ctx_t* ctx ) {
   pcb[ 0 ].ctx.cpsr = 0x50;
   pcb[ 0 ].ctx.pc   = ( uint32_t )( &main_console );
   pcb[ 0 ].ctx.sp   = ( uint32_t )( &tos_user_progs  );
+  pcb[ 0 ].priority = 10;
   pcb[ 0 ].status   = EXECUTING;
   max_pid++;
 

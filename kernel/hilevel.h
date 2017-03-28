@@ -50,6 +50,7 @@ typedef struct {
   pid_t pid;
   ctx_t ctx;
   status_t status;
+  int priority;
 } pcb_t;
 
 #endif

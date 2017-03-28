@@ -63,16 +63,13 @@ void main_console() {
     gets( x, 1024 );
     p = strtok( x, " " );
 
-    write( STDOUT_FILENO, "t", 1 );
-
     if ( 0 == strcmp( p, "fork" ) ) {
-      pid_t pid = fork();
-      // char* string = " ";
-      // itoa( string, pid );
-      // puts( string, 1 );
+      void* addr   = load( strtok( NULL, " " ) );
+      int priority = atoi( strtok( NULL, " " ) );
+
+      pid_t pid = fork(priority);
 
       if ( 0 == pid ) {
-        void* addr = load( strtok( NULL, " " ) );
         exec( addr );
       }
     }

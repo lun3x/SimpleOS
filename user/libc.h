@@ -13,7 +13,7 @@ typedef int pid_t;
  *
  * 1. system call identifiers (i.e., the constant used by a system call
  *    to specify which action the kernel should take),
- * 2. signal identifiers (as used by the kill system call), 
+ * 2. signal identifiers (as used by the kill system call),
  * 3. status codes for exit,
  * 4. standard file descriptors (e.g., for read and write system calls),
  * 5. platform-specific constants, which may need calibration (wrt. the
@@ -30,6 +30,7 @@ typedef int pid_t;
 #define SYS_EXIT      ( 0x04 )
 #define SYS_EXEC      ( 0x05 )
 #define SYS_KILL      ( 0x06 )
+#define SYS_PIPE      ( 0x07 )
 
 #define SIG_TERM      ( 0x00 )
 #define SIG_QUIT      ( 0x01 )
@@ -57,11 +58,21 @@ extern int  read( int fd,       void* x, size_t n );
 // perform fork, returning 0 iff. child or > 0 iff. parent process
 extern int  fork();
 // perform exit, i.e., terminate process with status x
-extern void exit(       int   x );
+extern void exit(       int x );
 // perform exec, i.e., start executing program at address x
 extern void exec( const void* x );
 
 // signal process identified by pid with signal x
 extern int  kill( pid_t pid, int x );
+
+
+// create pipe for IPC
+extern int pipe( pid_t pid );
+// write data to pipe
+extern void write_pipe( int id, int x );
+// read data from pipe
+extern int read_pipe( int id );
+// close pipe
+extern void close_pipe( int id );
 
 #endif

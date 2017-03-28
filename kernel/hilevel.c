@@ -16,10 +16,10 @@ pcb_t pcb[ MAX_PROGS ], *current = NULL;
 pid_t max_pid = 0;
 
 // entry points for programs
-extern void     main_P3();
-extern void     main_P4();
-extern void     main_P5();
-extern void     main_console();
+extern void main_P3();
+extern void main_P4();
+extern void main_P5();
+extern void main_console();
 
 // location of top of stack of console
 extern uint32_t tos_user_progs;
@@ -52,6 +52,18 @@ int find_next_pcb_index() {
 }
 
 
+// return the next free index int the pcb
+int find_free_pcb_index() {
+  for (int i = 0; i < MAX_PROGS; i++) {
+    if (pcb[i].status == TERMINATED) {
+      return i; // return index of free pcb
+    }
+  }
+
+  return -1; // return error if no free pcbs
+}
+
+
 // increase priority of all processes not currently executing
 void age_processes(int current_pcb_index) {
   for (int i = 0; i < MAX_PROGS; i++) {
@@ -77,18 +89,6 @@ void scheduler(ctx_t* ctx) {
   }
 
   return;
-}
-
-
-// return the next free index int the pcb
-int find_free_pcb_index() {
-  for (int i = 0; i < MAX_PROGS; i++) {
-    if (pcb[i].status == TERMINATED) {
-      return i; // return index of free pcb
-    }
-  }
-
-  return -1; // return error if no free pcbs
 }
 
 
@@ -144,6 +144,25 @@ void hilevel_exit( ctx_t* ctx ) {
 }
 
 
+// create a pipe
+int hilevel_pipe( ctx_t *ctx ) {
+
+}
+
+// write to console
+void hilevel_write( ctx_t *ctx ) {
+  int   fd = ( int   )( ctx->gpr[ 0 ] );
+  char*  x = ( char* )( ctx->gpr[ 1 ] );
+  int    n = ( int   )( ctx->gpr[ 2 ] );
+
+  for( int i = 0; i < n; i++ ) {
+    PL011_putc( UART0, *x++, true );
+  }
+
+  ctx->gpr[ 0 ] = n;
+}
+
+
 // handle reset interrupt calls
 void hilevel_handler_rst( ctx_t* ctx ) {
   /* Configure the mechanism for interrupt handling by
@@ -155,7 +174,7 @@ void hilevel_handler_rst( ctx_t* ctx ) {
    * - enabling IRQ interrupts.
    */
 
-  TIMER0->Timer1Load  = 0x00100000; // select period = 2^20 ticks ~= 1 sec
+  TIMER0->Timer1Load  = 0x00010000; // select period = 2^20 ticks ~= 1 sec
   TIMER0->Timer1Ctrl  = 0x00000002; // select 32-bit   timer
   TIMER0->Timer1Ctrl |= 0x00000040; // select periodic timer
   TIMER0->Timer1Ctrl |= 0x00000020; // enable          timer interrupt
@@ -249,20 +268,12 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
    */
 
   switch( id ) {
-    case 0x00 : { // 0x00 => yield()
+    case 0x00: { // 0x00 => yield()
       scheduler( ctx );
       break;
     }
-    case 0x01 : { // 0x01 => write( fd, x, n )
-      int   fd = ( int   )( ctx->gpr[ 0 ] );
-      char*  x = ( char* )( ctx->gpr[ 1 ] );
-      int    n = ( int   )( ctx->gpr[ 2 ] );
-
-      for( int i = 0; i < n; i++ ) {
-        PL011_putc( UART0, *x++, true );
-      }
-
-      ctx->gpr[ 0 ] = n;
+    case 0x01: { // 0x01 => write( fd, x, n )
+      hilevel_write( ctx );
       break;
     }
     case 0x03: { // 0x00 => fork()
@@ -277,7 +288,11 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
       hilevel_exec( ctx );
       break;
     }
-    default   : { // 0x?? => unknown/unsupported
+    case 0x07: { // 0x05 => pipe()
+      hilevel_pipe( ctx );
+      break;
+    }
+    default: { // 0x?? => unknown/unsupported
       break;
     }
   }

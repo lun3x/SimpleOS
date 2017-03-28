@@ -53,4 +53,11 @@ typedef struct {
   int priority;
 } pcb_t;
 
+typedef struct {
+  pid_t proc1;
+  pid_t proc2;
+  int value;
+  int id;
+} pipe_t;
+
 #endif

@@ -131,7 +131,7 @@ int kill( int pid, int x ) {
   return r;
 }
 
-int pipe( pid_t pid ) {
+int open_pipe( pid_t pid ) {
   int r;
 
   asm volatile( "mov r0, %2 \n" // assign r0 to pid
@@ -144,18 +144,16 @@ int pipe( pid_t pid ) {
   return r;
 }
 
-int write_pipe( int id, int x ) {
-  int r;
+void write_pipe( int id, int x ) {
 
-  asm volatile( "mov r0, %2 \n" // assign r0 =  id
-                "mov r1, %3 \n" // assign r1 =    x
-                "svc %1     \n" // make system call SYS_KILL
-                "mov %0, r0 \n" // assign r0 =    r
-              : "=r" (r)
+  asm volatile( "mov r0, %1 \n" // assign r0 =  id
+                "mov r1, %2 \n" // assign r1 =   x
+                "svc %0     \n" // make system call SYS_KILL
+              :
               : "I" (SYS_PIPE_WRITE), "r" (id), "r" (x)
               : "r0", "r1" );
 
-  return r;
+  return;
 }
 
 int read_pipe( int id ) {

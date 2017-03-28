@@ -66,8 +66,8 @@ extern void exec( const void* x );
 extern int  kill( pid_t pid, int x );
 
 
-// create pipe for IPC
-extern int pipe( pid_t pid );
+// create pipe for IPC to proccess pid
+extern int open_pipe( pid_t pid );
 // write data to pipe
 extern void write_pipe( int id, int x );
 // read data from pipe

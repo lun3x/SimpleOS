@@ -62,6 +62,7 @@ typedef struct {
   int value;
   int id;
   status_t status;
+  int accessed;
 } pipe_t;
 
 #endif

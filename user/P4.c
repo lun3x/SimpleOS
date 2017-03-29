@@ -12,19 +12,28 @@ uint32_t gcd( uint32_t x, uint32_t y ) {
   }
 }
 
+// void main_P4() {
+//   while( 1 ) {
+//     write( STDOUT_FILENO, "P4", 2 );
+//
+//     uint32_t lo = 1 <<  4;
+//     uint32_t hi = 1 <<  8;
+//
+//     for( uint32_t x = lo; x < hi; x++ ) {
+//       for( uint32_t y = lo; y < hi; y++ ) {
+//         uint32_t r = gcd( x, y );
+//       }
+//     }
+//   }
+//
+//   exit( EXIT_SUCCESS );
+// }
+
 void main_P4() {
-  while( 1 ) {
-    write( STDOUT_FILENO, "P4", 2 );
+  int received = read_pipe(0);
 
-    uint32_t lo = 1 <<  4;
-    uint32_t hi = 1 <<  8;
+  write_pipe(0, 0);
 
-    for( uint32_t x = lo; x < hi; x++ ) {
-      for( uint32_t y = lo; y < hi; y++ ) {
-        uint32_t r = gcd( x, y ); 
-      }
-    }
-  }
-
+  write( STDOUT_FILENO, "endP4", 5 );
   exit( EXIT_SUCCESS );
 }

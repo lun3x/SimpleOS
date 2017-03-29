@@ -36,6 +36,8 @@ typedef int pid_t;
 #define SYS_PIPE_READ  ( 0x09 )
 #define SYS_PIPE_CLOSE ( 0x10 )
 
+#define SYS_ID         ( 0x11 )
+
 #define SIG_TERM      ( 0x00 )
 #define SIG_QUIT      ( 0x01 )
 
@@ -69,13 +71,16 @@ extern void exec( const void* x );
 // signal process identified by pid with signal x
 extern int  kill( pid_t pid, int x );
 
-// create pipe for IPC to proccess pid
-extern int open_pipe( pid_t pid );
+// create pipe for IPC between processes pid1 and pid2
+extern int open_pipe( pid_t pid1, pid_t pid2 );
 // write data to pipe
 extern void write_pipe( int id, int x );
 // read data from pipe
 extern int read_pipe( int id );
 // close pipe
 extern void close_pipe( int id );
+
+// get pid for current process
+int get_proc_id();
 
 #endif

@@ -32,7 +32,7 @@ void main_P3() {
 }
 
 // void main_P3() {
-//   int pipe_id = open_pipe(2);
+//   int pipe_id = open_pipe(1, 2);
 //   write_pipe(pipe_id, 6);
 //   yield();
 //

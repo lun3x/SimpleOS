@@ -164,7 +164,7 @@ void hilevel_pipe_open( ctx_t *ctx ) {
 
   if (free_pipe_index >= 0) { // if space for free pipes
     pipes[ free_pipe_index ].proc1  = (pid_t) ctx->gpr[0];
-    pipes[ free_pipe_index ].proc2  = current->pid;
+    pipes[ free_pipe_index ].proc2  = (pid_t) ctx->gpr[1];
     pipes[ free_pipe_index ].value  = 0;
     pipes[ free_pipe_index ].id     = free_pipe_index;
     pipes[ free_pipe_index ].status = OPEN;
@@ -217,6 +217,14 @@ void hilevel_pipe_close( ctx_t *ctx ) {
   }
 }
 
+
+// get pid of current process
+void hilevel_get_proc_id( ctx_t *ctx ) {
+  ctx->gpr[0] = current->pid;
+  return;
+}
+
+
 // write to console
 void hilevel_write( ctx_t *ctx ) {
   int   fd = ( int   )( ctx->gpr[ 0 ] );
@@ -242,7 +250,7 @@ void hilevel_handler_rst( ctx_t* ctx ) {
    * - enabling IRQ interrupts.
    */
 
-  TIMER0->Timer1Load  = 0x00010000; // select period = 2^20 ticks ~= 1 sec
+  TIMER0->Timer1Load  = 0x00100000; // select period = 2^20 ticks ~= 1 sec
   TIMER0->Timer1Ctrl  = 0x00000002; // select 32-bit   timer
   TIMER0->Timer1Ctrl |= 0x00000040; // select periodic timer
   TIMER0->Timer1Ctrl |= 0x00000020; // enable          timer interrupt
@@ -377,6 +385,10 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
     }
     case 0x10: { // 0x05 => pipe_close()
       hilevel_pipe_close( ctx );
+      break;
+    }
+    case 0x11: { // 0x05 => get_proc_id()
+      hilevel_get_proc_id( ctx );
       break;
     }
     default: { // 0x?? => unknown/unsupported

@@ -131,14 +131,15 @@ int kill( int pid, int x ) {
   return r;
 }
 
-int open_pipe( pid_t pid ) {
+int open_pipe( pid_t pid1, pid_t pid2 ) {
   int r;
 
-  asm volatile( "mov r0, %2 \n" // assign r0 to pid
+  asm volatile( "mov r0, %2 \n" // assign r0 to pid1
+                "mov r1, %3 \n" // assign r1 to pid2
                 "svc %1     \n" // make system call SYS_PIPE
                 "mov %0, r0 \n" // assign r = r0
               : "=r" (r)
-              : "I" (SYS_PIPE_OPEN), "r" (pid)
+              : "I" (SYS_PIPE_OPEN), "r" (pid1), "r" (pid2)
               : "r0" );
 
   return r;
@@ -177,4 +178,16 @@ void close_pipe( int id ) {
               : "r0" );
 
   return;
+}
+
+int get_proc_id() {
+  int r;
+
+  asm volatile( "svc %1     \n" // make svc call SYS_ID
+                "mov %0, r0 \n" // assign r = r0
+              : "=r" (r)
+              : "I" (SYS_ID)
+              : "r0" );
+
+  return r;
 }

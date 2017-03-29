@@ -39,8 +39,22 @@ int find_pcb_index(pid_t pid) {
 }
 
 
-// return the next program to be executed in the pcb
-int find_next_pcb_index() {
+// return the next program to be executed in the pcb according to round robin
+int find_next_pcb_index_rr() {
+  int current_index = find_pcb_index(current->pid);
+
+  for (int i = 1; i < MAX_PROGS; i++) {
+    int next_index = (current_index + i) % MAX_PROGS;
+    if (pcb[ next_index ].status == EXECUTING) {
+      return next_index;
+    }
+  }
+  return current_index;
+}
+
+
+// return the next program to be executed in the pcb according to a priority queue
+int find_next_pcb_index_pq() {
   int max_priority = 0, index = 0;
 
   for (int i = 0; i < MAX_PROGS; i++) {
@@ -79,7 +93,7 @@ void age_processes(int current_pcb_index) {
 // scheduler, round-robin approach
 void scheduler(ctx_t* ctx) {
   int current_pcb_index = find_pcb_index(current->pid);  // find current program index
-  int next_pcb_index = find_next_pcb_index();            // find index of next program to be executed (if it exists)
+  int next_pcb_index = find_next_pcb_index_rr();            // find index of next program to be executed (if it exists)
 
   age_processes(current_pcb_index);
 
@@ -165,7 +179,7 @@ void hilevel_pipe_open( ctx_t *ctx ) {
   if (free_pipe_index >= 0) { // if space for free pipes
     pipes[ free_pipe_index ].proc1  = (pid_t) ctx->gpr[0];
     pipes[ free_pipe_index ].proc2  = (pid_t) ctx->gpr[1];
-    pipes[ free_pipe_index ].value  = 0;
+    pipes[ free_pipe_index ].value  = -1;
     pipes[ free_pipe_index ].id     = free_pipe_index;
     pipes[ free_pipe_index ].status = OPEN;
   }
@@ -315,15 +329,6 @@ void hilevel_handler_irq( ctx_t* ctx ) {
 
   // step 3: handle the interrupt, then clear (or reset) the source.
   if ( id == GIC_SOURCE_TIMER0 ) {
-    if (current->pid == 0) PL011_putc( UART0, '0', true );
-    else if (current->pid == 1) PL011_putc( UART0, '1', true );
-    else if (current->pid == 2) PL011_putc( UART0, '2', true );
-    else if (current->pid == 3) PL011_putc( UART0, '3', true );
-    else if (current->pid == 4) PL011_putc( UART0, '4', true );
-    else if (current->pid == 5) PL011_putc( UART0, '5', true );
-    else if (current->pid == 6) PL011_putc( UART0, '6', true );
-    else if (current->pid == 7) PL011_putc( UART0, '7', true );
-    else if (current->pid == 8) PL011_putc( UART0, '8', true );
 
     scheduler( ctx );
 

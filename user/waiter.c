@@ -18,5 +18,7 @@ void main_waiter() {
     }
   }
 
+  write( STDOUT_FILENO, "end waiter", 10 );
+
   exit( EXIT_SUCCESS );
 }

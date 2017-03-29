@@ -30,6 +30,7 @@
  */
 
 #define MAX_PROGS  10
+#define MAX_PIPES  10
 #define STACK_SIZE 0x00005000
 
 typedef int pid_t;
@@ -39,6 +40,8 @@ typedef struct {
 } ctx_t;
 
 typedef enum {
+  OPEN,
+  CLOSED,
   CREATED,
   READY,
   EXECUTING,
@@ -58,6 +61,7 @@ typedef struct {
   pid_t proc2;
   int value;
   int id;
+  status_t status;
 } pipe_t;
 
 #endif

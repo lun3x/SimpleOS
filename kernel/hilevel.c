@@ -12,6 +12,8 @@
 // set of program control blocks, pointer to current pcb
 pcb_t pcb[ MAX_PROGS ], *current = NULL;
 
+pipe_t pipes[ MAX_PIPES ];
+
 // current maximum allocated program id
 pid_t max_pid = 0;
 
@@ -144,9 +146,71 @@ void hilevel_exit( ctx_t* ctx ) {
 }
 
 
-// create a pipe
-int hilevel_pipe( ctx_t *ctx ) {
+// find index in pipes to put new pipe
+int find_free_pipe_index() {
+  for (int i = 0; i < MAX_PIPES; i++) {
+    if (pipes[i].status == CLOSED) {
+      return i;
+    }
+  }
 
+  return -1;
+}
+
+// create a pipe
+void hilevel_pipe_open( ctx_t *ctx ) {
+  int free_pipe_index = find_free_pipe_index();
+
+  if (free_pipe_index >= 0) { // if space for free pipes
+    pipes[ free_pipe_index ].proc1 = (pid_t) ctx->gpr[0];
+    pipes[ free_pipe_index ].proc2 = current->pid;
+    pipes[ free_pipe_index ].value = 0;
+    pipes[ free_pipe_index ].id = free_pipe_index;
+    pipes[ free_pipe_index ].status = OPEN;
+  }
+
+  ctx->gpr[0] = free_pipe_index;
+
+  return;
+}
+
+
+// write data to pipe
+void hilevel_pipe_write( ctx_t *ctx ) {
+  int pipe_id = ctx->gpr[0];
+  int data    = ctx->gpr[1];
+
+  if (pipes[ pipe_id ].status == OPEN) {
+    if (pipes[ pipe_id ].proc1 == current->pid || pipes[ pipe_id ].proc2 == current->pid) {
+      pipes[ pipe_id ].value = data;
+    }
+  }
+
+  return;
+}
+
+
+//read data from pipe
+void hilevel_pipe_read( ctx_t *ctx ) {
+  int pipe_id = ctx->gpr[0];
+
+  if (pipes[ pipe_id ].status == OPEN) {
+    if (pipes[ pipe_id ].proc1 == current->pid || pipes[ pipe_id ].proc2 == current->pid) {
+      ctx->gpr[0] = pipes[ pipe_id ].data;
+    }
+  }
+
+  return;
+}
+
+void hilevel_pipe_close( ctx_t *ctx ) {
+  int pipe_id = ctx->gpr[0];
+
+  if (pipes[ pipe_id ].status == OPEN) {
+    if (pipes[ pipe_id ].proc1 == current->pid || pipes[ pipe_id ].proc2 == current->pid) {
+      pipes[ pipe_id ].status = CLOSED;
+    }
+  }
 }
 
 // write to console
@@ -200,6 +264,13 @@ void hilevel_handler_rst( ctx_t* ctx ) {
     memset( &pcb[i], 0, sizeof( pcb_t ) );
     pcb[i].status = TERMINATED;
     pcb[i].pid = -1;
+  }
+
+  // initialise pipes to 0
+  for (int i = 0; i < MAX_PIPES; i++) {
+    memset( &pipes[i], 0, sizeof( pipe_t ) );
+    pipes[i].status = CLOSED;
+    pipes[i].id = -1;
   }
 
   // intialise first entry to pcb table as console
@@ -288,8 +359,20 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
       hilevel_exec( ctx );
       break;
     }
-    case 0x07: { // 0x05 => pipe()
-      hilevel_pipe( ctx );
+    case 0x07: { // 0x05 => pipe_open()
+      hilevel_pipe_open( ctx );
+      break;
+    }
+    case 0x08: { // 0x05 => pipe_write()
+      hilevel_pipe_write( ctx );
+      break;
+    }
+    case 0x09: { // 0x05 => pipe_read()
+      hilevel_pipe_read( ctx );
+      break;
+    }
+    case 0x10: { // 0x05 => pipe_close()
+      hilevel_pipe_close( ctx );
       break;
     }
     default: { // 0x?? => unknown/unsupported

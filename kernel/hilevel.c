@@ -163,11 +163,10 @@ void hilevel_pipe_open( ctx_t *ctx ) {
   int free_pipe_index = find_free_pipe_index();
 
   if (free_pipe_index >= 0) { // if space for free pipes
-    pipes[ free_pipe_index ].proc1 = (pid_t) ctx->gpr[0];
-    pipes[ free_pipe_index ].proc2 = current->pid;
-    pipes[ free_pipe_index ].value = 0;
-    pipes[ free_pipe_index ].id = free_pipe_index;
-    pipes[ free_pipe_index ].accessed = 0;
+    pipes[ free_pipe_index ].proc1  = (pid_t) ctx->gpr[0];
+    pipes[ free_pipe_index ].proc2  = current->pid;
+    pipes[ free_pipe_index ].value  = 0;
+    pipes[ free_pipe_index ].id     = free_pipe_index;
     pipes[ free_pipe_index ].status = OPEN;
   }
 
@@ -185,13 +184,6 @@ void hilevel_pipe_write( ctx_t *ctx ) {
   if (pipes[ pipe_id ].status == OPEN) {
     if (pipes[ pipe_id ].proc1 == current->pid || pipes[ pipe_id ].proc2 == current->pid) {
       pipes[ pipe_id ].value = data;
-      pipes[ pipe_id ].accessed = 1;
-
-      volatile int pipe_accessed = pipes[ pipe_id ].accessed;
-
-      while (pipe_accessed == 1) {
-        pipe_accessed = pipes[ pipe_id ].accessed;
-      }
     }
   }
 
@@ -205,14 +197,8 @@ void hilevel_pipe_read( ctx_t *ctx ) {
 
   if (pipes[ pipe_id ].status == OPEN) {
     if (pipes[ pipe_id ].proc1 == current->pid || pipes[ pipe_id ].proc2 == current->pid) {
-      volatile int pipe_accessed = pipes[ pipe_id ].accessed;
-
-      while (pipe_accessed == 0) {
-        pipe_accessed = pipes[ pipe_id ].accessed;
-      }
 
       ctx->gpr[0] = pipes[ pipe_id ].value;
-      pipes[ pipe_id ].accessed = 0;
     }
   }
 
@@ -288,7 +274,6 @@ void hilevel_handler_rst( ctx_t* ctx ) {
   for (int i = 0; i < MAX_PIPES; i++) {
     memset( &pipes[i], 0, sizeof( pipe_t ) );
     pipes[i].status = CLOSED;
-    pipes[i].accessed = 0;
     pipes[i].id = -1;
   }
 

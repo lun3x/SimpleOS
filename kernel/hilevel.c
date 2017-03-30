@@ -57,18 +57,18 @@ pid_t find_next_pid_rr() {
 
 
 // return the next program to be executed in the pcb according to a priority queue
-// int find_next_pcb_index_pq() {
-//   int max_priority = 0, index = 0;
-//
-//   for (int i = 0; i < MAX_PROGS; i++) {
-//     if (pcb[i].status == EXECUTING && pcb[i].priority >= max_priority) {
-//       max_priority = pcb[i].priority;
-//       index = i;
-//     }
-//   }
-//
-//   return index;
-// }
+int find_next_pid_pq() {
+  int max_priority = 0;
+
+  for (int i = 0; i < MAX_PROGS; i++) {
+    if (pcb[i].status == EXECUTING && pcb[i].priority >= max_priority) {
+      max_priority = pcb[i].priority;
+      index = i;
+    }
+  }
+
+  return index;
+}
 
 
 // return the next free index int the pcb
@@ -101,7 +101,7 @@ void scheduler(ctx_t* ctx) {
   //age_processes(get_current_process(pcb_ring)->pid);
 
   // if there is another program to execute
-  if (next_pid != get_current_process(pcb_ring)->pid) {
+  if (next_pid != get_current_pid(pcb_ring)) {
     // save current program to its place in pcb table
     memcpy( &get_current_process(pcb_ring)->ctx, ctx, sizeof( ctx_t ) );
 
@@ -133,7 +133,7 @@ void hilevel_fork( ctx_t *ctx ) {
   //max_pid++;                                    // increment max_pid
 
   int new_tos     = (int) &tos_user_progs - child_pcb->pid                     * STACK_SIZE; // find tos for new program
-  int current_tos = (int) &tos_user_progs - get_current_process(pcb_ring)->pid * STACK_SIZE; // find tos for current program
+  int current_tos = (int) &tos_user_progs - get_current_pid(pcb_ring) * STACK_SIZE; // find tos for current program
 
   int sp_location = current_tos - ctx->sp; // find where in the stack the stack pointer is (dist from current tos)
 
@@ -153,7 +153,7 @@ void hilevel_fork( ctx_t *ctx ) {
 
 // load new program image to be executed
 void hilevel_exec( ctx_t* ctx ) {
-  int current_tos = (int) &tos_user_progs - get_current_process(pcb_ring)->pid * STACK_SIZE; // get current top of stack
+  int current_tos = (int) &tos_user_progs - get_current_pid(pcb_ring) * STACK_SIZE; // get current top of stack
 
   memset( (void *) current_tos - STACK_SIZE, 0, STACK_SIZE); // initialise stack to zeros for security
 
@@ -211,7 +211,7 @@ void hilevel_pipe_write( ctx_t *ctx ) {
   int data    = ctx->gpr[1];
 
   if (pipes[ pipe_id ].status == OPEN) {
-    if (pipes[ pipe_id ].proc1 == get_current_process(pcb_ring)->pid || pipes[ pipe_id ].proc2 == get_current_process(pcb_ring)->pid) {
+    if (pipes[ pipe_id ].proc1 == get_current_pid(pcb_ring) || pipes[ pipe_id ].proc2 == get_current_pid(pcb_ring)) {
       pipes[ pipe_id ].value = data;
     }
   }
@@ -223,9 +223,10 @@ void hilevel_pipe_write( ctx_t *ctx ) {
 //read data from pipe
 void hilevel_pipe_read( ctx_t *ctx ) {
   int pipe_id = ctx->gpr[0];
+  ctx->gpr[0] = -1;
 
   if (pipes[ pipe_id ].status == OPEN) {
-    if (pipes[ pipe_id ].proc1 == get_current_process(pcb_ring)->pid || pipes[ pipe_id ].proc2 == get_current_process(pcb_ring)->pid) {
+    if (pipes[ pipe_id ].proc1 == get_current_pid(pcb_ring) || pipes[ pipe_id ].proc2 == get_current_pid(pcb_ring)) {
 
       ctx->gpr[0] = pipes[ pipe_id ].value;                  // read value into register for return to function
       if (ctx->gpr[1]) pipes[ pipe_id ].value = -1;          // if overwrite flag on, reset pipe value to prevent multiple reads
@@ -241,7 +242,7 @@ void hilevel_pipe_close( ctx_t *ctx ) {
   int pipe_id = ctx->gpr[0];
 
   if (pipes[ pipe_id ].status == OPEN) {
-    if (pipes[ pipe_id ].proc1 == get_current_process(pcb_ring)->pid || pipes[ pipe_id ].proc2 == get_current_process(pcb_ring)->pid) {
+    if (pipes[ pipe_id ].proc1 == get_current_pid(pcb_ring) || pipes[ pipe_id ].proc2 == get_current_pid(pcb_ring)) {
       pipes[ pipe_id ].value = -1;
       pipes[ pipe_id ].status = CLOSED;
     }
@@ -251,7 +252,7 @@ void hilevel_pipe_close( ctx_t *ctx ) {
 
 // get pid of current process
 void hilevel_get_proc_id( ctx_t *ctx ) {
-  ctx->gpr[0] = get_current_process(pcb_ring)->pid;
+  ctx->gpr[0] = get_current_pid(pcb_ring);
   return;
 }
 
@@ -281,7 +282,7 @@ void hilevel_handler_rst( ctx_t* ctx ) {
    * - enabling IRQ interrupts.
    */
 
-  TIMER0->Timer1Load  = 0x00001000; // select period = 2^20 ticks ~= 1 sec
+  TIMER0->Timer1Load  = 0x00100000; // select period = 2^20 ticks ~= 1 sec
   TIMER0->Timer1Ctrl  = 0x00000002; // select 32-bit   timer
   TIMER0->Timer1Ctrl |= 0x00000040; // select periodic timer
   TIMER0->Timer1Ctrl |= 0x00000020; // enable          timer interrupt

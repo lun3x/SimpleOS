@@ -7,6 +7,6 @@
 
 #include "libc.h"
 
-#define PROBLEM_NUM 16
+#define PROBLEM_NUM 4
 
 #endif

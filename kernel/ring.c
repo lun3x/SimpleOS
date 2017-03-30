@@ -47,6 +47,10 @@ void set_last(Ring *ring) {
   move_back(ring);
 }
 
+pid_t get_current_pid(Ring *ring) {
+  return ring->current->pcb->pid;
+}
+
 pcb_t *get_current_process(Ring *ring) {
   return ring->current->pcb;
 }
@@ -107,7 +111,7 @@ pid_t get_next_pid(Ring *ring) {
   if (!is_sentinel(ring->current->next)) { // if not at end of ring
     return ring->current->next->pcb->pid; // return next pid
   } else {
-    return ring->first->pcb->pid; // else return first pid
+    return ring->first->next->pcb->pid; // else return first pid
   }
 }
 
@@ -172,5 +176,16 @@ int get_ring_length(Ring *ring) {
     length++;
     move_back(ring);
   }
+  return length;
+}
+
+int get_current_pos_in_ring(Ring *ring) {
+  pid_t current_pid = get_current_pid(ring);
+  int length = 0;
+  while (!is_sentinel(ring->current)) {
+    length++;
+    move_back(ring);
+  }
+  int success = locate_by_id(ring, current_pid);
   return length;
 }

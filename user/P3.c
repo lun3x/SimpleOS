@@ -34,7 +34,6 @@ void main_P3() {
 // void main_P3() {
 //   int pipe_id = open_pipe(1, 2);
 //   write_pipe(pipe_id, 6);
-//   yield();
 //
 //   write( STDOUT_FILENO, "endP3", 5 );
 //   exit( EXIT_SUCCESS );

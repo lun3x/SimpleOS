@@ -149,7 +149,7 @@ void write_pipe( int id, int x ) {
 
   asm volatile( "mov r0, %1 \n" // assign r0 =  id
                 "mov r1, %2 \n" // assign r1 =   x
-                "svc %0     \n" // make system call SYS_KILL
+                "svc %0     \n" // make system call SYS_PIPE_WRITE
               :
               : "I" (SYS_PIPE_WRITE), "r" (id), "r" (x)
               : "r0", "r1" );
@@ -161,7 +161,7 @@ int read_pipe( int id ) {
   int r;
 
   asm volatile( "mov r0, %2 \n" // assign r0 =  id
-                "svc %1     \n" // make system call SYS_KILL
+                "svc %1     \n" // make system call SYS_PIPE_READ
                 "mov %0, r0 \n" // assign r0 =    r
               : "=r" (r)
               : "I" (SYS_PIPE_READ), "r" (id)

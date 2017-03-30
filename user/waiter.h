@@ -7,6 +7,6 @@
 
 #include "libc.h"
 
-#define NUM_PHILOSOPHERS 4
+#define PROBLEM_NUM 4
 
 #endif

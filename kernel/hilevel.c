@@ -212,7 +212,8 @@ void hilevel_pipe_read( ctx_t *ctx ) {
   if (pipes[ pipe_id ].status == OPEN) {
     if (pipes[ pipe_id ].proc1 == current->pid || pipes[ pipe_id ].proc2 == current->pid) {
 
-      ctx->gpr[0] = pipes[ pipe_id ].value;
+      ctx->gpr[0] = pipes[ pipe_id ].value; // read value into register for return to function
+      pipes[ pipe_id ].value = -1;          // reset pipe value to prevent multiple reads
     }
   }
 
@@ -226,6 +227,7 @@ void hilevel_pipe_close( ctx_t *ctx ) {
 
   if (pipes[ pipe_id ].status == OPEN) {
     if (pipes[ pipe_id ].proc1 == current->pid || pipes[ pipe_id ].proc2 == current->pid) {
+      pipes[ pipe_id ].value = -1;
       pipes[ pipe_id ].status = CLOSED;
     }
   }

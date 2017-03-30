@@ -28,8 +28,10 @@ typedef struct ring {
 // Set the id of the given pcb to the given id.
 //void set_id(pcb_t *pcb, int id);
 
+ctx_t *create_ctx(uint32_t cpsr, uint32_t pc, uint32_t sp);
+
 // Return a pointer to a new pcb with given pcb id and pcb name.
-pcb_t *create_process(char name[20], int id);
+pcb_t *create_pcb(pid_t pid, int priority, status_t status, ctx_t *ctx);
 
 // Set the pointer to the current pcb, to the first pcb in the ring.
 void set_first(Ring *ring);
@@ -64,7 +66,7 @@ void print_ring(Ring *ring, int max_num_to_print);
 
 // Sets the current pointer to the node containing the pcb with the given id.
 // Return either 1 or 0 if the operation is successful or not respectively.
-int locate_by_id(Ring *ring, int id);
+int locate_by_id(Ring *ring, pid_t id);
 
 // Move the node at the current pointer to the end of the ring.
 void move_to_end(Ring *ring);
@@ -74,5 +76,7 @@ void error(int value);
 
 // Returns the total number of entries in a ring.
 int get_ring_length(Ring *ring);
+
+pid_t get_next_pid(Ring *ring);
 
 #endif

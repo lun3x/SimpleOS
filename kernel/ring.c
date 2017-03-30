@@ -16,16 +16,23 @@
 //   pcb->pid = id;
 // }
 
-pcb_t *create_pcb(int pid, int priority, status_t status, uint32_t pc, uint32_t sp, uint32_t cpsr) {
+ctx_t *create_ctx(uint32_t cpsr, uint32_t pc, uint32_t sp) {
+  ctx_t *new_ctx = malloc(sizeof(ctx_t));
+  new_ctx->cpsr = cpsr;
+  new_ctx->pc   = pc;
+  new_ctx->sp   = sp;
+
+  return new_ctx;
+}
+
+pcb_t *create_pcb(pid_t pid, int priority, status_t status, ctx_t *ctx) {
   pcb_t *new_pcb = malloc(sizeof(pcb_t));
 
   new_pcb->pid      = pid;
   new_pcb->priority = priority;
   new_pcb->status   = status;
 
-  new_pcb->ctx.pc   = pc;
-  new_pcb->ctx.sp   = sp;
-  new_pcb->ctx.cpsr = cpsr;
+  memcpy(&new_pcb->ctx, ctx, sizeof(ctx_t));
 
   return new_pcb;
 }
@@ -96,6 +103,14 @@ bool is_sentinel(Node *node) {
   }
 }
 
+pid_t get_next_pid(Ring *ring) {
+  if (!is_sentinel(ring->current->next)) { // if not at end of ring
+    return ring->current->next->pcb->pid; // return next pid
+  } else {
+    return ring->first->pcb->pid; // else return first pid
+  }
+}
+
 void delete(Ring *ring) {
   if (!is_sentinel(ring->current)) {
     Node *new_current;
@@ -117,7 +132,7 @@ void print_ring(Ring *ring, int max_num_to_print) {
   }
 }
 
-int locate_by_id(Ring *ring, int id) {
+int locate_by_id(Ring *ring, pid_t id) {
   set_last(ring);
   while (!is_sentinel(ring->current)) {
     if (ring->current->pcb->pid == id) {

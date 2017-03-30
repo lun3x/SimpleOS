@@ -238,7 +238,7 @@ void hilevel_pipe_close( ctx_t *ctx ) {
 
 // get pid of current process
 void hilevel_get_proc_id( ctx_t *ctx ) {
-  ctx->gpr[0] = current->pid;
+  ctx->gpr[0] = get_current_process(pcb_ring)->pid;
   return;
 }
 
@@ -289,18 +289,27 @@ void hilevel_handler_rst( ctx_t* ctx ) {
 
   max_pid = 0; // initialise max pid to 0
 
+  // initialise ring of pcbs
   pcb_ring = create_ring();
 
+  // set up initial program
   pcb_t *initial_pcb = create_pcb( max_pid, 10, EXECUTING, (uint32_t) &main_console, (uint32_t) &tos_user_progs, (uint32_t) 0x50 );
   max_pid++;
-  memcpy(ctx, )
 
-  // initialise pcb to zeros
-  for (int i = 0; i < MAX_PROGS; i++) {
-    memset( &pcb[i], 0, sizeof( pcb_t ) );
-    pcb[i].status = TERMINATED;
-    pcb[i].pid = -1;
-  }
+  // insert pcb into ring
+  insert_after(pcb_ring, initial_pcb);
+  // set the current pointer to it
+  set_last(pcb_ring);
+
+  // copy the context of the initial program into the passed in context
+  memcpy(ctx, &initial_pcb->ctx, sizeof(ctx_t));
+
+  // // initialise pcb to zeros
+  // for (int i = 0; i < MAX_PROGS; i++) {
+  //   memset( &pcb[i], 0, sizeof( pcb_t ) );
+  //   pcb[i].status = TERMINATED;
+  //   pcb[i].pid = -1;
+  // }
 
   // initialise pipes to 0
   for (int i = 0; i < MAX_PIPES; i++) {
@@ -309,18 +318,18 @@ void hilevel_handler_rst( ctx_t* ctx ) {
     pipes[i].id = -1;
   }
 
-  // intialise first entry to pcb table as console
-  pcb[ 0 ].pid      = max_pid;
-  pcb[ 0 ].ctx.cpsr = 0x50;
-  pcb[ 0 ].ctx.pc   = ( uint32_t )( &main_console );
-  pcb[ 0 ].ctx.sp   = ( uint32_t )( &tos_user_progs  );
-  pcb[ 0 ].priority = 10;
-  pcb[ 0 ].status   = EXECUTING;
-  max_pid++;
-
-  // once pcb of console initialised, select it to be currently runnning prog
-  current = &pcb[ 0 ];
-  memcpy( ctx, &current->ctx, sizeof( ctx_t ) );
+  // // intialise first entry to pcb table as console
+  // pcb[ 0 ].pid      = max_pid;
+  // pcb[ 0 ].ctx.cpsr = 0x50;
+  // pcb[ 0 ].ctx.pc   = ( uint32_t )( &main_console );
+  // pcb[ 0 ].ctx.sp   = ( uint32_t )( &tos_user_progs  );
+  // pcb[ 0 ].priority = 10;
+  // pcb[ 0 ].status   = EXECUTING;
+  // max_pid++;
+  //
+  // // once pcb of console initialised, select it to be currently runnning prog
+  // current = &pcb[ 0 ];
+  // memcpy( ctx, &current->ctx, sizeof( ctx_t ) );
 
   // enable irq interrupts
   int_enable_irq();

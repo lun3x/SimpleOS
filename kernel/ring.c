@@ -23,9 +23,9 @@ pcb_t *create_pcb(int pid, int priority, status_t status, uint32_t pc, uint32_t 
   new_pcb->priority = priority;
   new_pcb->status   = status;
 
-  new_pcb->ctx->pc   = pc;
-  new_pcb->ctx->sp   = sp;
-  new_pcb->ctx->cpsr = cpsr;
+  new_pcb->ctx.pc   = pc;
+  new_pcb->ctx.sp   = sp;
+  new_pcb->ctx.cpsr = cpsr;
 
   return new_pcb;
 }

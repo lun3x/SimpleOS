@@ -107,11 +107,11 @@ bool is_sentinel(Node *node) {
   }
 }
 
-pid_t get_next_pid(Ring *ring) {
+void locate_next_pid(Ring *ring) {
   if (!is_sentinel(ring->current->next)) { // if not at end of ring
-    return ring->current->next->pcb->pid; // return next pid
+    move_fwd(ring); // go to next
   } else {
-    return ring->first->next->pcb->pid; // else return first pid
+    set_first(ring); // else go to start
   }
 }
 
@@ -170,12 +170,14 @@ void error(int value) {
 }
 
 int get_ring_length(Ring *ring) {
-  int length = 0;
+  pid_t current_pid = get_current_pid(ring);
   set_last(ring);
+  int length = 0;
   while (!is_sentinel(ring->current)) {
     length++;
     move_back(ring);
   }
+  int success = locate_by_id(ring, current_pid);
   return length;
 }
 

@@ -173,14 +173,14 @@ int _read_pipe( int id, int overwrite ) {
 
 void write_pipe( int id, int x ) {
   _write_pipe(id, x);
-  yield();
+  // yield();
 
   int response = x;
   while (response != -1) {
     response = _read_pipe(id, 0); //check value in pipe without overwrite
-    if (response != -1) {
-      yield();
-    }
+    // if (response != -1) {
+    //   yield();
+    // }
   }
 }
 
@@ -189,9 +189,9 @@ int read_pipe( int id ) {
   int response = -1;
   while (response == -1) {
     response = _read_pipe( id, 1 );
-    if (response == -1) {
-      yield();
-    }
+    // if (response == -1) {
+    //   yield();
+    // }
   }
   return response;
 }

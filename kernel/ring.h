@@ -77,8 +77,8 @@ void error(int value);
 // Returns the total number of entries in a ring.
 int get_ring_length(Ring *ring);
 
-// Returns the pid of the next pcb in the ring
-pid_t get_next_pid(Ring *ring);
+// Moves current to next pid
+void locate_next_pid(Ring *ring);
 
 // Returns the pid of the current program in the ring
 pid_t get_current_pid(Ring *ring);

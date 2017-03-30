@@ -11,7 +11,7 @@ void main_waiter() {
   for (int i = 0; i < PROBLEM_NUM; i++) {
     philosopher_pids[i] = fork(10);
 
-    philosopher_pipe_ids[i] = open_pipe( proc_id,  philosopher_pids[i] );
+    philosopher_pipe_ids[i] = open_pipe( proc_id, philosopher_pids[i] );
 
     if (philosopher_pids[i] == 0) {
       exec( &main_philosopher );

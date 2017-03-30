@@ -141,7 +141,7 @@ void hilevel_fork( ctx_t *ctx ) {
 
 // load new program image to be executed
 void hilevel_exec( ctx_t* ctx ) {
-  int current_tos = (int) &tos_user_progs - find_pcb_index(current->pid) * STACK_SIZE; // get current top of stack
+  int current_tos = (int) &tos_user_progs - get_current_process(pcb_ring)->pid * STACK_SIZE; // get current top of stack
 
   memset( (void *) current_tos - STACK_SIZE, 0, STACK_SIZE); // initialise stack to zeros for security
 
@@ -158,7 +158,8 @@ void hilevel_exec( ctx_t* ctx ) {
 
 // find program in pcb list and remove it
 void hilevel_exit( ctx_t* ctx ) {
-  pcb[ find_pcb_index(current->pid) ].status = TERMINATED; // set the status to terminated
+  delete(pcb_ring);
+  //pcb[ find_pcb_index(current->pid) ].status = TERMINATED; // set the status to terminated
 }
 
 

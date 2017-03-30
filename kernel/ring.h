@@ -1,41 +1,44 @@
 #ifndef __RING_H
 #define __RING_H
 
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
+#include "hilevel.h"
+
+typedef struct node { // Node in a linked list
+  struct node *next;  // Pointer to next node
+  struct node *prev;  // Pointer to previous node
+  pcb_t *pcb;         // pcb_t at node
+} Node;
 
 // The type of a ring. Only the ring module has access to the details.
-struct ring;
-typedef struct ring Ring;
+typedef struct ring {
+  Node *first;
+  Node *last;
+  Node *current;
+} Ring;
 
-// The type of user. Only the ring module has access to the details.
-struct user;
-typedef struct user User;
-
-// Get the user id of the user at the current location.
+// Get the pcb id of the pcb at the current location.
 int get_id(Ring *ring);
 
-// Get the user name of the user at the current location.
+// Get the pcb name of the pcb at the current location.
 char *get_name(Ring *ring);
 
-// Set the user name of the given user to the given string.
-void set_name(User *user, char name[20]);
+// Set the pcb name of the given pcb to the given string.
+void set_name(pcb_t *pcb, char name[20]);
 
-// Set the id of the given user to the given id.
-void set_id(User *user, int id);
+// Set the id of the given pcb to the given id.
+void set_id(pcb_t *pcb, int id);
 
-// Return a pointer to a new user with given user id and user name.
-User *create_user(char name[20], int id);
+// Return a pointer to a new pcb with given pcb id and pcb name.
+pcb_t *create_process(char name[20], int id);
 
-// Set the pointer to the current user, to the first user in the ring.
+// Set the pointer to the current pcb, to the first pcb in the ring.
 void set_first(Ring *ring);
 
-// Set the pointer to the current user, to the last user in the ring.
+// Set the pointer to the current pcb, to the last pcb in the ring.
 void set_last(Ring *ring);
 
-// Return the user at the current position in the ring.
-User *get_user(Ring *ring);
+// Return the pcb at the current position in the ring.
+pcb_t *get_process(Ring *ring);
 
 // Move the current pointer forward one position in the ring.
 void move_fwd(Ring *ring);
@@ -43,23 +46,23 @@ void move_fwd(Ring *ring);
 // Move the current pointer forward one position in the ring.
 void move_back(Ring *ring);
 
-// Insert a new node containing a given user before the current position in the list.
-void insert_before(Ring *ring, User *user);
+// Insert a new node containing a given pcb before the current position in the list.
+void insert_before(Ring *ring, pcb_t *pcb);
 
-// Insert a new node containing a given user after the current position in the list.
-void insert_after(Ring *ring, User *user);
+// Insert a new node containing a given pcb after the current position in the list.
+void insert_after(Ring *ring, pcb_t *pcb);
 
 // Return a new empty ring, containing only the sentinel node.
 Ring *create_ring();
 
-// Delete the current node, moving the current pointer forward to the next user.
+// Delete the current node, moving the current pointer forward to the next pcb.
 // Don't do anything if the current node is the sentinel node.
 void delete(Ring *ring);
 
 // Print the given ring up to the maximum number of entries given.
 void print_ring(Ring *ring, int max_num_to_print);
 
-// Sets the current pointer to the node containing the user with the given id.
+// Sets the current pointer to the node containing the pcb with the given id.
 // Return either 1 or 0 if the operation is successful or not respectively.
 int locate_by_id(Ring *ring, int id);
 

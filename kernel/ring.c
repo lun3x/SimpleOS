@@ -1,45 +1,27 @@
 #include "ring.h"
 
-struct user { // User at a node
-  char name[20];
-  int user_id;
-};
+// char *get_name(Ring *ring) {
+//   return ring->current->pcb->name;
+// }
 
-struct node { // Node in a linked list
-  struct node *next; // Pointer to next node
-  struct node *prev; // Pointer to previous node
-  User *user; // User at node
-};
-typedef struct node Node;
+// int get_id(Ring *ring) {
+//   return ring->current->pcb->pid;
+// }
 
-struct ring {
-  Node *first;
-  Node *last;
-  Node *current;
-};
+// void set_name(pcb_t *pcb, char name[20]) {
+//   strcpy(pcb->name, name);
+// }
 
-char *get_name(Ring *ring) {
-  return ring->current->user->name;
-}
+// void set_id(pcb_t *pcb, int id) {
+//   pcb->pid = id;
+// }
 
-int get_id(Ring *ring) {
-  return ring->current->user->user_id;
-}
+pcb_t *create_pcb(int id, int priority) {
+  pcb_t *new_pcb = malloc(sizeof(pcb_t));
+  new_pcb->pid = id;
+  new_pcb->priority = priority;
 
-void set_name(User *user, char name[20]) {
-  strcpy(user->name, name);
-}
-
-void set_id(User *user, int id) {
-  user->user_id = id;
-}
-
-User *create_user(char name[20], int id) {
-  User *new_user = malloc(sizeof(User));
-  strcpy(new_user->name, name);
-  new_user->user_id = id;
-
-  return new_user;
+  return new_pcb;
 }
 
 void set_first(Ring *ring) {
@@ -52,8 +34,8 @@ void set_last(Ring *ring) {
   move_back(ring);
 }
 
-User *get_user(Ring *ring) {
-  return ring->current->user;
+pcb_t *get_process(Ring *ring) {
+  return ring->current->pcb;
 }
 
 void move_fwd(Ring *ring) {
@@ -64,23 +46,23 @@ void move_back(Ring *ring) {
   ring->current = ring->current->prev;
 }
 
-Node *create_node(User *user, Node *next_node, Node *prev_node) {
+Node *create_node(pcb_t *pcb, Node *next_node, Node *prev_node) {
   Node *new_node = malloc(sizeof(Node));
   new_node->next = next_node;
   new_node->prev = prev_node;
-  new_node->user = user;
+  new_node->pcb = pcb;
 
   return new_node;
 }
 
-void insert_before(Ring *ring, User *user) {
-  Node *new_node = create_node(user, ring->current, ring->current->prev);
+void insert_before(Ring *ring, pcb_t *pcb) {
+  Node *new_node = create_node(pcb, ring->current, ring->current->prev);
   ring->current->prev->next = new_node;
   ring->current->prev = new_node;
 }
 
-void insert_after(Ring *ring, User *user) {
-  Node *new_node = create_node(user, ring->current->next, ring->current);
+void insert_after(Ring *ring, pcb_t *pcb) {
+  Node *new_node = create_node(pcb, ring->current->next, ring->current);
   ring->current->next->prev = new_node;
   ring->current->next = new_node;
 }
@@ -100,7 +82,7 @@ Ring *create_ring() {
 }
 
 bool is_sentinel(Node *node) {
-  if (node->user == NULL) {
+  if (node->pcb == NULL) {
     return true;
   }
   else {
@@ -132,7 +114,7 @@ void print_ring(Ring *ring, int max_num_to_print) {
 int locate_by_id(Ring *ring, int id) {
   set_last(ring);
   while (!is_sentinel(ring->current)) {
-    if (ring->current->user->user_id == id) {
+    if (ring->current->pcb->pid == id) {
       return 1;
     }
     move_back(ring);
@@ -144,18 +126,18 @@ void move_to_end(Ring *ring) {
   Node *node_to_be_moved = ring->current;
   delete(ring);
   set_last(ring);
-  insert_after(ring, node_to_be_moved->user);
+  insert_after(ring, node_to_be_moved->pcb);
 }
 
 void error(int value) {
   if (value == 1) {
-    //printf("Non existant user!\n");
+    //printf("Non existant pcb!\n");
   }
   else if (value == 2) {
-    //printf("Incorrect user name for that ID!\n");
+    //printf("Incorrect pcb name for that ID!\n");
   }
   else if (value == 3) {
-    //printf("Invalid user ID!\n");
+    //printf("Invalid pcb ID!\n");
   }
   else {
     //printf("Unknown error!\n");

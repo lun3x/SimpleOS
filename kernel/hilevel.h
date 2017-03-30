@@ -20,6 +20,7 @@
 #include "lolevel.h"
 #include     "int.h"
 
+
 /* The kernel source code is made simpler via three type definitions:
  *
  * - a type that captures a Process IDentifier (PID), which is really
@@ -64,5 +65,7 @@ typedef struct {
   int id;
   status_t status;
 } pipe_t;
+
+#include "ring.h"
 
 #endif

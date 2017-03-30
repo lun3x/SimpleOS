@@ -189,3 +189,36 @@ int get_current_pos_in_ring(Ring *ring) {
   int success = locate_by_id(ring, current_pid);
   return length;
 }
+
+void locate_highest_priority(Ring *ring) {
+  set_last(ring);
+  int max_priority = 0;
+  pid_t max_priority_pid = 0;
+  while (!is_sentinel(ring->current)) {
+    if (ring->current->pcb->priority >= max_priority) {
+      max_priority = ring->current->pcb->priority;
+      max_priority_pid = get_current_pid(ring);
+    }
+    move_back(ring);
+  }
+
+  locate_by_id(ring, max_priority_pid);
+}
+
+void age_processes(Ring *ring) {
+  pid_t current_pid = get_current_pid(ring);
+  set_last(ring);
+  while (!is_sentinel(ring->current)) {
+    if (ring->current->pcb->pid == current_pid) {
+      ring->current->pcb->priority--;
+    } else {
+      ring->current->pcb->priority++;
+    }
+    if (ring->current->pcb->priority > 32) {
+      ring->current->pcb->priority = 31;
+    }
+    move_back(ring);
+  }
+
+  locate_by_id(ring, current_pid);
+}

@@ -42,33 +42,33 @@ extern uint32_t tos_user_progs;
 
 
 // return the next program to be executed according to round robin
-pid_t find_next_pid_rr() {
-  //int current_index = find_pcb_index(current->pid);
-  return get_next_pid(pcb_ring);
-
-  // for (int i = 1; i < MAX_PROGS; i++) {
-  //   int next_index = (current_index + i) % MAX_PROGS;
-  //   if (pcb[ next_index ].status == EXECUTING) {
-  //     return next_index;
-  //   }
-  // }
-  // return current_index;
-}
+// pid_t find_next_pid_rr() {
+//   //int current_index = find_pcb_index(current->pid);
+//   return get_next_pid(pcb_ring);
+//
+//   // for (int i = 1; i < MAX_PROGS; i++) {
+//   //   int next_index = (current_index + i) % MAX_PROGS;
+//   //   if (pcb[ next_index ].status == EXECUTING) {
+//   //     return next_index;
+//   //   }
+//   // }
+//   // return current_index;
+// }
 
 
 // return the next program to be executed in the pcb according to a priority queue
-int find_next_pid_pq() {
-  int max_priority = 0;
-
-  for (int i = 0; i < MAX_PROGS; i++) {
-    if (pcb[i].status == EXECUTING && pcb[i].priority >= max_priority) {
-      max_priority = pcb[i].priority;
-      index = i;
-    }
-  }
-
-  return index;
-}
+// int find_next_pid_pq() {
+//   int max_priority = 0;
+//
+//   for (int i = 0; i < MAX_PROGS; i++) {
+//     if (pcb[i].status == EXECUTING && pcb[i].priority >= max_priority) {
+//       max_priority = pcb[i].priority;
+//       index = i;
+//     }
+//   }
+//
+//   return index;
+// }
 
 
 // return the next free index int the pcb
@@ -83,37 +83,36 @@ int find_next_pid_pq() {
 // }
 
 
-// increase priority of all processes not currently executing
-// void age_processes(int current_pcb_index) {
-//   for (int i = 0; i < MAX_PROGS; i++) {
-//     if (i != current_pcb_index && pcb[i].status == EXECUTING) {
-//       pcb[i].priority++;
-//     }
-//   }
-// }
+// switch processes according to priority queue
+void scheduler(ctx_t *ctx) {
+  age_processes(pcb_ring);
+  memcpy( &get_current_process(pcb_ring)->ctx, ctx, sizeof( ctx_t ) );
+  locate_highest_priority(pcb_ring);
+  memcpy( ctx, &get_current_process(pcb_ring)->ctx, sizeof( ctx_t ) );
+}
 
 
 // scheduler, round-robin approach
-void scheduler(ctx_t* ctx) {
-  //int current_pcb_index = find_pcb_index(current->pid);  // find current program index
-  int next_pid = find_next_pid_rr();            // find index of next program to be executed (if it exists)
-
-  //age_processes(get_current_process(pcb_ring)->pid);
-
-  // if there is another program to execute
-  if (next_pid != get_current_pid(pcb_ring)) {
-    // save current program to its place in pcb table
-    memcpy( &get_current_process(pcb_ring)->ctx, ctx, sizeof( ctx_t ) );
-
-    // move the current pointer to point to the next process to execute
-    int success = locate_by_id(pcb_ring, next_pid);
-
-    // copy the context in the index of the new program into context passed in
-    memcpy( ctx, &get_current_process(pcb_ring)->ctx, sizeof( ctx_t ) );
-  }
-
-  return;
-}
+// void scheduler(ctx_t* ctx) {
+//   //int current_pcb_index = find_pcb_index(current->pid);  // find current program index
+//   int next_pid = find_next_pid_rr();            // find index of next program to be executed (if it exists)
+//
+//   //age_processes(get_current_process(pcb_ring)->pid);
+//
+//   // if there is another program to execute
+//   if (next_pid != get_current_pid(pcb_ring)) {
+//     // save current program to its place in pcb table
+//     memcpy( &get_current_process(pcb_ring)->ctx, ctx, sizeof( ctx_t ) );
+//
+//     // move the current pointer to point to the next process to execute
+//     int success = locate_by_id(pcb_ring, next_pid);
+//
+//     // copy the context in the index of the new program into context passed in
+//     memcpy( ctx, &get_current_process(pcb_ring)->ctx, sizeof( ctx_t ) );
+//   }
+//
+//   return;
+// }
 
 
 // create new child process identical to parent

@@ -86,4 +86,10 @@ pid_t get_current_pid(Ring *ring);
 // Returns the distance from the start of the ring to the current pcb
 int get_current_pos_in_ring(Ring *ring);
 
+// Increments priority of all processes except current
+void age_processes(Ring *ring);
+
+// Moves current to highest priority pcb
+void locate_highest_priority(Ring *ring);
+
 #endif

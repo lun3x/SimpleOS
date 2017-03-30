@@ -357,8 +357,6 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
    * - write any return value back to preserved usr mode registers.
    */
 
-  uint8_t* x = ( uint8_t* )( malloc( 10 ) );
-
   switch( id ) {
     case 0x00: { // 0x00 => yield()
       scheduler( ctx );

@@ -12,7 +12,7 @@
 // set of program control blocks, pointer to current pcb
 //pcb_t pcb[ MAX_PROGS ], *current = NULL;
 
-pipe_t pipes[ MAX_PIPES ];
+pipe_t pipes[MAX_PIPES];
 
 Ring *pcb_ring;
 
@@ -25,142 +25,81 @@ extern void main_P4();
 extern void main_P5();
 extern void main_console();
 
-// location of top of stack of console
+// location of top of stack for user programs
 extern uint32_t tos_user_progs;
-
-
-// find pcb index from pid
-// int find_pcb_index(pid_t pid) {
-//   for (int i = 0; i < MAX_PROGS; i++) {
-//     if (pcb[ i ].pid == pid) {
-//       return i;
-//     }
-//   }
-//
-//   return -1; // return error if program not found (?)
-// }
-
-
-// return the next program to be executed according to round robin
-// pid_t find_next_pid_rr() {
-//   //int current_index = find_pcb_index(current->pid);
-//   return get_next_pid(pcb_ring);
-//
-//   // for (int i = 1; i < MAX_PROGS; i++) {
-//   //   int next_index = (current_index + i) % MAX_PROGS;
-//   //   if (pcb[ next_index ].status == EXECUTING) {
-//   //     return next_index;
-//   //   }
-//   // }
-//   // return current_index;
-// }
-
-
-// return the next program to be executed in the pcb according to a priority queue
-// int find_next_pid_pq() {
-//   int max_priority = 0;
-//
-//   for (int i = 0; i < MAX_PROGS; i++) {
-//     if (pcb[i].status == EXECUTING && pcb[i].priority >= max_priority) {
-//       max_priority = pcb[i].priority;
-//       index = i;
-//     }
-//   }
-//
-//   return index;
-// }
-
-
-// return the next free index int the pcb
-// int find_free_pcb_index() {
-//   for (int i = 0; i < MAX_PROGS; i++) {
-//     if (pcb[i].status == TERMINATED) {
-//       return i; // return index of free pcb
-//     }
-//   }
-//
-//   return -1; // return error if no free pcbs
-// }
 
 
 // switch processes according to priority queue
 void scheduler(ctx_t *ctx) {
   age_processes(pcb_ring);
-  memcpy( &get_current_process(pcb_ring)->ctx, ctx, sizeof( ctx_t ) );
+
+  memcpy(&get_current_process(pcb_ring)->ctx,
+         ctx,
+         sizeof(ctx_t));
+
   locate_highest_priority(pcb_ring);
-  memcpy( ctx, &get_current_process(pcb_ring)->ctx, sizeof( ctx_t ) );
+
+  memcpy(ctx,
+         &get_current_process(pcb_ring)->ctx,
+         sizeof(ctx_t));
 }
 
 
-// scheduler, round-robin approach
-// void scheduler(ctx_t* ctx) {
-//   //int current_pcb_index = find_pcb_index(current->pid);  // find current program index
-//   int next_pid = find_next_pid_rr();            // find index of next program to be executed (if it exists)
-//
-//   //age_processes(get_current_process(pcb_ring)->pid);
-//
-//   // if there is another program to execute
-//   if (next_pid != get_current_pid(pcb_ring)) {
-//     // save current program to its place in pcb table
-//     memcpy( &get_current_process(pcb_ring)->ctx, ctx, sizeof( ctx_t ) );
-//
-//     // move the current pointer to point to the next process to execute
-//     int success = locate_by_id(pcb_ring, next_pid);
-//
-//     // copy the context in the index of the new program into context passed in
-//     memcpy( ctx, &get_current_process(pcb_ring)->ctx, sizeof( ctx_t ) );
-//   }
-//
-//   return;
-// }
-
-
 // create new child process identical to parent
-void hilevel_fork( ctx_t *ctx ) {
-  //int free_pcb_index = find_free_pcb_index(); // find where to put new program
-
-  pcb_t *child_pcb = create_pcb( max_pid, ctx->gpr[0], EXECUTING, ctx);
+void hilevel_fork(ctx_t *ctx) {
+  pcb_t *child_pcb = create_pcb(max_pid, ctx->gpr[0], EXECUTING, ctx);
   max_pid++;
 
-  // insert new child pcb after current pcb
+  // insert new child pcb into ring after current pcb
   insert_after(pcb_ring, child_pcb);
 
-  //memcpy( &pcb[ free_pcb_index ].ctx, ctx, sizeof( ctx_t ) ); // copy current ctx to new pcb ctx to make exact copy
+  // find top of stack for for child and current program
+  int new_tos     = (int) &tos_user_progs - child_pcb->pid            * STACK_SIZE;
+  int current_tos = (int) &tos_user_progs - get_current_pid(pcb_ring) * STACK_SIZE;
 
-  //pcb[ free_pcb_index ].pid = max_pid;          // update new process in pcb table with max pid
-  //pcb[ free_pcb_index ].priority = ctx->gpr[0]; // update new process with correct priority
-  //max_pid++;                                    // increment max_pid
+  // find stack pointer location within stack
+  int sp_location = current_tos - ctx->sp;
 
-  int new_tos     = (int) &tos_user_progs - child_pcb->pid                     * STACK_SIZE; // find tos for new program
-  int current_tos = (int) &tos_user_progs - get_current_pid(pcb_ring) * STACK_SIZE; // find tos for current program
+  // put child's stack pointer to correct place within stack
+  child_pcb->ctx.sp = new_tos - sp_location;
 
-  int sp_location = current_tos - ctx->sp; // find where in the stack the stack pointer is (dist from current tos)
+  // copy across the current stack into the new stack
+  memcpy((void *) new_tos - STACK_SIZE,
+         (void *) current_tos - STACK_SIZE,
+         STACK_SIZE);
 
-  child_pcb->ctx.sp = new_tos - sp_location; // update the new stack pointer to its correct location in the new stack
+  // return 0 to child process
+  child_pcb->ctx.gpr[0] = 0;
 
-  memcpy( (void *) new_tos - STACK_SIZE, (void *) current_tos - STACK_SIZE, STACK_SIZE ); // copy across the current stack into the new stack
+  // return pid of child process to parent process
+  ctx->gpr[0] = child_pcb->pid;
 
-  child_pcb->ctx.gpr[ 0 ] = 0; // return 0 to child process
-
-  ctx->gpr[ 0 ] = child_pcb->pid; // return pid of child process to parent process
-
-  child_pcb->status = EXECUTING; // set status of new process to EXECUTING
+  // set status of new child process to EXECUTING
+  child_pcb->status = EXECUTING;
 
   return;
 }
 
 
 // load new program image to be executed
-void hilevel_exec( ctx_t* ctx ) {
-  int current_tos = (int) &tos_user_progs - get_current_pid(pcb_ring) * STACK_SIZE; // get current top of stack
+void hilevel_exec(ctx_t* ctx) {
+  // get current top of stack
+  int current_tos = (int) &tos_user_progs - get_current_pid(pcb_ring) * STACK_SIZE;
 
-  memset( (void *) current_tos - STACK_SIZE, 0, STACK_SIZE); // initialise stack to zeros for security
+  // initialise stack to zeros for security
+  memset((void *) current_tos - STACK_SIZE,
+         0,
+         STACK_SIZE);
 
-  ctx->sp = current_tos;   // initialise stack pointer to start of stack
-  ctx->pc = ctx->gpr[ 0 ]; // set pc to entry point of new function
+  // initialise stack pointer to start of stack
+  ctx->sp = current_tos;
 
-  for (int i = 0; i < 13; i++) { // set gprs to 0 for security
-    ctx->gpr[ i ] = 0;
+  // set pc to entry point of new function
+  ctx->pc = ctx->gpr[0];
+
+  // set gprs to 0 for security
+  for (int i = 0; i < 13; i++) {
+    ctx->gpr[i] = 0;
   }
 
   return;
@@ -168,9 +107,8 @@ void hilevel_exec( ctx_t* ctx ) {
 
 
 // find program in pcb list and remove it
-void hilevel_exit( ctx_t* ctx ) {
+void hilevel_exit(ctx_t* ctx) {
   delete(pcb_ring);
-  //pcb[ find_pcb_index(current->pid) ].status = TERMINATED; // set the status to terminated
 }
 
 
@@ -187,10 +125,11 @@ int find_free_pipe_index() {
 
 
 // create a pipe
-void hilevel_pipe_open( ctx_t *ctx ) {
+void hilevel_pipe_open(ctx_t *ctx) {
   int free_pipe_index = find_free_pipe_index();
 
-  if (free_pipe_index >= 0) { // if space for free pipes
+  // if space for free pipes
+  if (free_pipe_index >= 0) {
     pipes[ free_pipe_index ].proc1  = (pid_t) ctx->gpr[0];
     pipes[ free_pipe_index ].proc2  = (pid_t) ctx->gpr[1];
     pipes[ free_pipe_index ].value  = -1;
@@ -210,6 +149,7 @@ void hilevel_pipe_write( ctx_t *ctx ) {
   int data    = ctx->gpr[1];
 
   if (pipes[ pipe_id ].status == OPEN) {
+    // check program has permission to write to pipe
     if (pipes[ pipe_id ].proc1 == get_current_pid(pcb_ring) || pipes[ pipe_id ].proc2 == get_current_pid(pcb_ring)) {
       pipes[ pipe_id ].value = data;
     }
@@ -225,10 +165,16 @@ void hilevel_pipe_read( ctx_t *ctx ) {
   ctx->gpr[0] = -1;
 
   if (pipes[ pipe_id ].status == OPEN) {
+    // check program has permission to read from pipe
     if (pipes[ pipe_id ].proc1 == get_current_pid(pcb_ring) || pipes[ pipe_id ].proc2 == get_current_pid(pcb_ring)) {
 
-      ctx->gpr[0] = pipes[ pipe_id ].value;                  // read value into register for return to function
-      if (ctx->gpr[1]) pipes[ pipe_id ].value = -1;          // if overwrite flag on, reset pipe value to prevent multiple reads
+      // return value to calling function
+      ctx->gpr[0] = pipes[ pipe_id ].value;
+
+      // if overwrite flag on, reset pipe value to prevent multiple reads
+      if (ctx->gpr[1]) {
+        pipes[ pipe_id ].value = -1;
+      }
     }
   }
 
@@ -237,20 +183,22 @@ void hilevel_pipe_read( ctx_t *ctx ) {
 
 
 // close existing pipe
-void hilevel_pipe_close( ctx_t *ctx ) {
+void hilevel_pipe_close(ctx_t *ctx) {
   int pipe_id = ctx->gpr[0];
 
-  if (pipes[ pipe_id ].status == OPEN) {
-    if (pipes[ pipe_id ].proc1 == get_current_pid(pcb_ring) || pipes[ pipe_id ].proc2 == get_current_pid(pcb_ring)) {
-      pipes[ pipe_id ].value = -1;
-      pipes[ pipe_id ].status = CLOSED;
+  if (pipes[pipe_id].status == OPEN) {
+    // check program has permission to close pipe
+    if (pipes[pipe_id].proc1 == get_current_pid(pcb_ring) || pipes[ pipe_id ].proc2 == get_current_pid(pcb_ring)) {
+      pipes[pipe_id].value  = -1;
+      pipes[pipe_id].status = CLOSED;
     }
   }
 }
 
 
-// get pid of current process
+// get process id of current process
 void hilevel_get_proc_id( ctx_t *ctx ) {
+  // return pid to calling function
   ctx->gpr[0] = get_current_pid(pcb_ring);
   return;
 }
@@ -266,6 +214,7 @@ void hilevel_write( ctx_t *ctx ) {
     PL011_putc( UART0, *x++, true );
   }
 
+  // return number of bits written to calling function
   ctx->gpr[ 0 ] = n;
 }
 
@@ -292,38 +241,30 @@ void hilevel_handler_rst( ctx_t* ctx ) {
   GICC0->CTLR         = 0x00000001; // enable GIC interface
   GICD0->CTLR         = 0x00000001; // enable GIC distributor
 
-  /* Initialise PCBs representing processes stemming from execution of
-   * the two user programs.  Note in each case that
-   *
-   * - the CPSR value of 0x50 means the processor is switched into USR
+  /*
+   * - The CPSR value of 0x50 means the processor is switched into USR
    *   mode, with IRQ interrupts enabled, and
-   * - the PC and SP values matche the entry point and top of stack.
+   * - The PC and SP values match the entry point and top of stack.
    */
+  max_pid = 0;
 
-  max_pid = 0; // initialise max pid to 0
-
-  // initialise ring of pcbs
   pcb_ring = create_ring();
+  // order = cpsr, pc, sp
   ctx_t *initial_ctx = create_ctx((uint32_t) 0x50, (uint32_t) &main_console, (uint32_t) &tos_user_progs);
 
-  // set up initial program
-  pcb_t *initial_pcb = create_pcb( max_pid, 10, EXECUTING, initial_ctx );
+  // set up initial process
+  // order = pid, priority, status, ctx
+  pcb_t *initial_pcb = create_pcb(max_pid, 10, EXECUTING, initial_ctx);
   max_pid++;
 
-  // insert pcb into ring
   insert_after(pcb_ring, initial_pcb);
-  // set the current pointer to it
-  set_last(pcb_ring);
+  // set the current pointer to inital process
+  set_first(pcb_ring);
 
   // copy the context of the initial program into the passed in context
-  memcpy(ctx, &initial_pcb->ctx, sizeof(ctx_t));
-
-  // // initialise pcb to zeros
-  // for (int i = 0; i < MAX_PROGS; i++) {
-  //   memset( &pcb[i], 0, sizeof( pcb_t ) );
-  //   pcb[i].status = TERMINATED;
-  //   pcb[i].pid = -1;
-  // }
+  memcpy(ctx,
+         &initial_pcb->ctx,
+         sizeof(ctx_t));
 
   // initialise pipes to 0
   for (int i = 0; i < MAX_PIPES; i++) {
@@ -332,20 +273,6 @@ void hilevel_handler_rst( ctx_t* ctx ) {
     pipes[i].id = -1;
   }
 
-  // // intialise first entry to pcb table as console
-  // pcb[ 0 ].pid      = max_pid;
-  // pcb[ 0 ].ctx.cpsr = 0x50;
-  // pcb[ 0 ].ctx.pc   = ( uint32_t )( &main_console );
-  // pcb[ 0 ].ctx.sp   = ( uint32_t )( &tos_user_progs  );
-  // pcb[ 0 ].priority = 10;
-  // pcb[ 0 ].status   = EXECUTING;
-  // max_pid++;
-  //
-  // // once pcb of console initialised, select it to be currently runnning prog
-  // current = &pcb[ 0 ];
-  // memcpy( ctx, &current->ctx, sizeof( ctx_t ) );
-
-  // enable irq interrupts
   int_enable_irq();
 
   return;
@@ -353,14 +280,13 @@ void hilevel_handler_rst( ctx_t* ctx ) {
 
 
 // handle irq interrupt calls
-void hilevel_handler_irq( ctx_t* ctx ) {
-  // step 1: disable irq interrupts
+void hilevel_handler_irq(ctx_t* ctx) {
   int_unable_irq();
 
-  // step 2: read  the interrupt identifier so we know the source.
+  // read  the interrupt identifier so we know the source.
   uint32_t id = GICC0->IAR;
 
-  // step 3: handle the interrupt, then clear (or reset) the source.
+  // handle the interrupt, then clear (or reset) the source.
   if ( id == GIC_SOURCE_TIMER0 ) {
 
     scheduler( ctx );
@@ -368,10 +294,9 @@ void hilevel_handler_irq( ctx_t* ctx ) {
     TIMER0->Timer1IntClr = 0x01; // reset timer
   }
 
-  // step 4: write the interrupt identifier to signal we're done.
+  // write the interrupt identifier to signal we're done.
   GICC0->EOIR = id;
 
-  // step 5: enable irq interrupts
   int_enable_irq();
 
   return;
@@ -379,7 +304,7 @@ void hilevel_handler_irq( ctx_t* ctx ) {
 
 
 // handle supervisor interrupt calls
-void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
+void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
   /* Based on the identified encoded as an immediate operand in the
    * instruction,
    *

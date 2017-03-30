@@ -43,12 +43,7 @@ typedef struct {
 
 typedef enum {
   OPEN,
-  CLOSED,
-  CREATED,
-  READY,
-  EXECUTING,
-  WAITING,
-  TERMINATED
+  CLOSED
 } status_t;
 
 typedef struct {

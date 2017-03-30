@@ -1,21 +1,5 @@
 #include "ring.h"
 
-// char *get_name(Ring *ring) {
-//   return ring->current->pcb->name;
-// }
-
-// int get_id(Ring *ring) {
-//   return ring->current->pcb->pid;
-// }
-
-// void set_name(pcb_t *pcb, char name[20]) {
-//   strcpy(pcb->name, name);
-// }
-
-// void set_id(pcb_t *pcb, int id) {
-//   pcb->pid = id;
-// }
-
 ctx_t *create_ctx(uint32_t cpsr, uint32_t pc, uint32_t sp) {
   ctx_t *new_ctx = malloc(sizeof(ctx_t));
   new_ctx->cpsr = cpsr;

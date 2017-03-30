@@ -14,6 +14,8 @@ pcb_t pcb[ MAX_PROGS ], *current = NULL;
 
 pipe_t pipes[ MAX_PIPES ];
 
+Ring *pcb_ring;
+
 // current maximum allocated program id
 pid_t max_pid = 0;
 
@@ -286,6 +288,12 @@ void hilevel_handler_rst( ctx_t* ctx ) {
    */
 
   max_pid = 0; // initialise max pid to 0
+
+  pcb_ring = create_ring();
+
+  pcb_t *initial_pcb = create_pcb( max_pid, 10, EXECUTING, (uint32_t) &main_console, (uint32_t) &tos_user_progs, (uint32_t) 0x50 );
+  max_pid++;
+  memcpy(ctx, )
 
   // initialise pcb to zeros
   for (int i = 0; i < MAX_PROGS; i++) {

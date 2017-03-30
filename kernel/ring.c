@@ -16,10 +16,16 @@
 //   pcb->pid = id;
 // }
 
-pcb_t *create_pcb(int id, int priority) {
+pcb_t *create_pcb(int pid, int priority, status_t status, uint32_t pc, uint32_t sp, uint32_t cpsr) {
   pcb_t *new_pcb = malloc(sizeof(pcb_t));
-  new_pcb->pid = id;
+
+  new_pcb->pid      = pid;
   new_pcb->priority = priority;
+  new_pcb->status   = status;
+
+  new_pcb->ctx->pc   = pc;
+  new_pcb->ctx->sp   = sp;
+  new_pcb->ctx->cpsr = cpsr;
 
   return new_pcb;
 }
@@ -34,7 +40,7 @@ void set_last(Ring *ring) {
   move_back(ring);
 }
 
-pcb_t *get_process(Ring *ring) {
+pcb_t *get_current_process(Ring *ring) {
   return ring->current->pcb;
 }
 

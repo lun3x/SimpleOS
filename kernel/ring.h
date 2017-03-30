@@ -17,16 +17,16 @@ typedef struct ring {
 } Ring;
 
 // Get the pcb id of the pcb at the current location.
-int get_id(Ring *ring);
+//int get_id(Ring *ring);
 
 // Get the pcb name of the pcb at the current location.
-char *get_name(Ring *ring);
+//char *get_name(Ring *ring);
 
 // Set the pcb name of the given pcb to the given string.
-void set_name(pcb_t *pcb, char name[20]);
+//void set_name(pcb_t *pcb, char name[20]);
 
 // Set the id of the given pcb to the given id.
-void set_id(pcb_t *pcb, int id);
+//void set_id(pcb_t *pcb, int id);
 
 // Return a pointer to a new pcb with given pcb id and pcb name.
 pcb_t *create_process(char name[20], int id);
@@ -38,7 +38,7 @@ void set_first(Ring *ring);
 void set_last(Ring *ring);
 
 // Return the pcb at the current position in the ring.
-pcb_t *get_process(Ring *ring);
+pcb_t *get_current_process(Ring *ring);
 
 // Move the current pointer forward one position in the ring.
 void move_fwd(Ring *ring);

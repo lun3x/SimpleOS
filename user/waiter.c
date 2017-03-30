@@ -18,27 +18,7 @@ void main_waiter() {
     }
   }
 
-  // while (1) {
-  //   for (int j = 0; j < 2; j++) {
-  //     for (int i = 0; i < PROBLEM_NUM; i++) {
-  //       if (j == 0) {
-  //         if (i%2 == 0) write_pipe(i, 0);
-  //         if (i%2 == 1) write_pipe(i, 1);
-  //       } else {
-  //         if (i%2 == 0) write_pipe(i, 1);
-  //         if (i%2 == 1) write_pipe(i, 0);
-  //       }
-  //     }
-  //   }
-  //   write( STDOUT_FILENO, "\n", 2 );
-  //   yield();
-  // }
-
   while (1) {
-    // write_pipe(0, 1);
-    // write_pipe(1, 0);
-    // write_pipe(2, 1);
-    // write_pipe(3, 0);
 
     for (int i = 0; i < PROBLEM_NUM; i++) {
       if (i % 2 == 0) write_pipe(i, 0);
@@ -46,11 +26,6 @@ void main_waiter() {
     }
 
     write( STDOUT_FILENO, "\n", 2 );
-
-    // write_pipe(0, 0);
-    // write_pipe(1, 1);
-    // write_pipe(2, 0);
-    // write_pipe(3, 1);
 
     for (int i = 0; i < PROBLEM_NUM; i++) {
       if (i % 2 == 1) write_pipe(i, 0);

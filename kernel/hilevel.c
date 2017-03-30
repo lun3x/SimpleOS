@@ -266,7 +266,7 @@ void hilevel_handler_rst( ctx_t* ctx ) {
    * - enabling IRQ interrupts.
    */
 
-  TIMER0->Timer1Load  = 0x00010000; // select period = 2^20 ticks ~= 1 sec
+  TIMER0->Timer1Load  = 0x00001000; // select period = 2^20 ticks ~= 1 sec
   TIMER0->Timer1Ctrl  = 0x00000002; // select 32-bit   timer
   TIMER0->Timer1Ctrl |= 0x00000040; // select periodic timer
   TIMER0->Timer1Ctrl |= 0x00000020; // enable          timer interrupt
@@ -356,6 +356,8 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
    * - perform whatever is appropriate for this system call,
    * - write any return value back to preserved usr mode registers.
    */
+
+  uint8_t* x = ( uint8_t* )( malloc( 10 ) );
 
   switch( id ) {
     case 0x00: { // 0x00 => yield()

@@ -1,5 +1,5 @@
-#ifndef __PHILOSOPHER_H
-#define __PHILOSOPHER_H
+#ifndef __WAITER_H
+#define __WAITER_H
 
 #include <stdbool.h>
 #include <stddef.h>

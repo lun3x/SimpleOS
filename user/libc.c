@@ -173,24 +173,29 @@ int  _read_pipe(int id, int overwrite) {
 
 void write_pipe(int id, int x) {
   _write_pipe(id, x);
-  // yield();
+  yield();
 
+  // loop checking the pipe until another process reads from it
   int response = x;
   while (response != -1) {
-    response = _read_pipe(id, 0); //check value in pipe without overwrite
-    // if (response != -1) {
-    //   yield();
-    // }
+    // only check value of pipe, don't overwrite it
+    response = _read_pipe(id, 0);
+    // if pipe has not been read from, yield to give other processes a chance
+    if (response != -1) {
+      yield();
+    }
   }
 }
 
 int  read_pipe(int id) {
+  // loop attempted reading from the pipe until another process writes to it
   int response = -1;
   while (response == -1) {
     response = _read_pipe( id, 1 );
-    // if (response == -1) {
-    //   yield();
-    // }
+    // if pipe has not been written to, yield to give other processes a chance
+    if (response == -1) {
+      yield();
+    }
   }
   return response;
 }

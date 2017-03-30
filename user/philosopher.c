@@ -6,14 +6,11 @@ void main_philosopher() {
   int can_eat;
 
   while (1) {
-    can_eat = -1;
-    while (can_eat == -1) {
-      can_eat = read_pipe(philosopher_id);
-    }
+    can_eat = read_pipe(philosopher_id);
 
-    char phil_id_str[1];
+    char phil_id_str[2];
     itoa(phil_id_str, philosopher_id + 1);
-    write( STDOUT_FILENO, phil_id_str, 1 );
+    write( STDOUT_FILENO, phil_id_str, 2 );
 
     if (can_eat) {
       write( STDOUT_FILENO, ": eating  \n", 12 );

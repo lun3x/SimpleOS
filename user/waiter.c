@@ -35,31 +35,29 @@ void main_waiter() {
   // }
 
   while (1) {
-    write_pipe(0, 1);
-    write_pipe(1, 0);
-    write_pipe(2, 1);
-    write_pipe(3, 0);
+    // write_pipe(0, 1);
+    // write_pipe(1, 0);
+    // write_pipe(2, 1);
+    // write_pipe(3, 0);
 
-    // for (int i = 0; i < PROBLEM_NUM; i++) {
-    //   write_pipe(i, i % 2);
-    // }
-
-    write( STDOUT_FILENO, "\n", 2 );
-
-    yield();
-
-    write_pipe(0, 0);
-    write_pipe(1, 1);
-    write_pipe(2, 0);
-    write_pipe(3, 1);
-
-    // for (int i = 0; i < PROBLEM_NUM; i++) {
-    //   write_pipe(i, i & 1);
-    // }
+    for (int i = 0; i < PROBLEM_NUM; i++) {
+      if (i % 2 == 0) write_pipe(i, 0);
+      else            write_pipe(i, 1);
+    }
 
     write( STDOUT_FILENO, "\n", 2 );
 
-    yield();
+    // write_pipe(0, 0);
+    // write_pipe(1, 1);
+    // write_pipe(2, 0);
+    // write_pipe(3, 1);
+
+    for (int i = 0; i < PROBLEM_NUM; i++) {
+      if (i % 2 == 1) write_pipe(i, 0);
+      else            write_pipe(i, 1);
+    }
+
+    write( STDOUT_FILENO, "\n", 2 );
   }
 
   exit( EXIT_SUCCESS );

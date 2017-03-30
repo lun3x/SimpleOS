@@ -145,7 +145,7 @@ int open_pipe( pid_t pid1, pid_t pid2 ) {
   return r;
 }
 
-void write_pipe( int id, int x ) {
+void _write_pipe( int id, int x ) {
 
   asm volatile( "mov r0, %1 \n" // assign r0 =  id
                 "mov r1, %2 \n" // assign r1 =   x
@@ -157,17 +157,35 @@ void write_pipe( int id, int x ) {
   return;
 }
 
-int read_pipe( int id ) {
+int _read_pipe( int id, int overwrite ) {
   int r;
 
   asm volatile( "mov r0, %2 \n" // assign r0 =  id
+                "mov r1, %3 \n" // assign r1 = overwrite
                 "svc %1     \n" // make system call SYS_PIPE_READ
                 "mov %0, r0 \n" // assign r0 =    r
               : "=r" (r)
-              : "I" (SYS_PIPE_READ), "r" (id)
+              : "I" (SYS_PIPE_READ), "r" (id), "r" (overwrite)
               : "r0" );
 
   return r;
+}
+
+void write_pipe( int id, int x ) {
+  _write_pipe(id, x);
+  int response = x;
+  while (response != -1) {
+    response = _read_pipe(id, 0); //check value in pipe without overwrite
+  }
+}
+
+
+int read_pipe( int id ) {
+  int response = -1;
+  while (response == -1) {
+    response = _read_pipe( id, 1 );
+  }
+  return response;
 }
 
 void close_pipe( int id ) {

@@ -93,7 +93,7 @@ void age_processes(int current_pcb_index) {
 // scheduler, round-robin approach
 void scheduler(ctx_t* ctx) {
   int current_pcb_index = find_pcb_index(current->pid);  // find current program index
-  int next_pcb_index = find_next_pcb_index_rr();            // find index of next program to be executed (if it exists)
+  int next_pcb_index = find_next_pcb_index_pq();            // find index of next program to be executed (if it exists)
 
   age_processes(current_pcb_index);
 
@@ -212,8 +212,8 @@ void hilevel_pipe_read( ctx_t *ctx ) {
   if (pipes[ pipe_id ].status == OPEN) {
     if (pipes[ pipe_id ].proc1 == current->pid || pipes[ pipe_id ].proc2 == current->pid) {
 
-      ctx->gpr[0] = pipes[ pipe_id ].value; // read value into register for return to function
-      pipes[ pipe_id ].value = -1;          // reset pipe value to prevent multiple reads
+      ctx->gpr[0] = pipes[ pipe_id ].value;                  // read value into register for return to function
+      if (ctx->gpr[1]) pipes[ pipe_id ].value = -1;          // if overwrite flag on, reset pipe value to prevent multiple reads
     }
   }
 
@@ -266,7 +266,7 @@ void hilevel_handler_rst( ctx_t* ctx ) {
    * - enabling IRQ interrupts.
    */
 
-  TIMER0->Timer1Load  = 0x00100000; // select period = 2^20 ticks ~= 1 sec
+  TIMER0->Timer1Load  = 0x00010000; // select period = 2^20 ticks ~= 1 sec
   TIMER0->Timer1Ctrl  = 0x00000002; // select 32-bit   timer
   TIMER0->Timer1Ctrl |= 0x00000040; // select periodic timer
   TIMER0->Timer1Ctrl |= 0x00000020; // enable          timer interrupt

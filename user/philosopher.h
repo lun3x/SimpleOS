@@ -7,6 +7,4 @@
 
 #include "libc.h"
 
-#define NUM_PHILOSOPHERS 4
-
 #endif

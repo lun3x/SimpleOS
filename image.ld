@@ -8,6 +8,12 @@ SECTIONS {
   /* place bss  segment(s)           */
   .bss  : {                         *(.bss         ) }
   /* align       address (per AAPCS) */
+  .heap : {
+          end   = .;
+    _heap_start = .;
+    .           = . + 0x00001000;
+    _heap_end   = .;
+  }
   .       = ALIGN( 8 );
   /* allocate stack for irq mode     */
   .       = . + 0x00001000;

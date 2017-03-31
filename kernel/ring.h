@@ -6,7 +6,7 @@
 typedef struct node { // Node in a linked list
   struct node *next;  // Pointer to next node
   struct node *prev;  // Pointer to previous node
-  pcb_t *pcb;         // pcb_t at node
+  void *item;         // item at node
 } Node;
 
 // The type of a ring. Only the ring module has access to the details.
@@ -27,6 +27,10 @@ void set_first(Ring *ring);
 // Set the pointer to the current pcb, to the last pcb in the ring.
 void set_last(Ring *ring);
 
+pid_t get_current_pipe_id(Ring *ring);
+
+pipe_t *get_current_pipe(Ring *ring);
+
 // Return the pcb at the current position in the ring.
 pcb_t *get_current_process(Ring *ring);
 
@@ -37,10 +41,10 @@ void move_fwd(Ring *ring);
 void move_back(Ring *ring);
 
 // Insert a new node containing a given pcb before the current position in the list.
-void insert_before(Ring *ring, pcb_t *pcb);
+void insert_before(Ring *ring, void *item);
 
 // Insert a new node containing a given pcb after the current position in the list.
-void insert_after(Ring *ring, pcb_t *pcb);
+void insert_after(Ring *ring, void *item);
 
 // Return a new empty ring, containing only the sentinel node.
 Ring *create_ring();

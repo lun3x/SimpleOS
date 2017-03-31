@@ -56,7 +56,7 @@ typedef struct {
   pid_t proc1;
   pid_t proc2;
   int value;
-  int id;
+  pid_t pid;
   status_t status;
 } pipe_t;
 

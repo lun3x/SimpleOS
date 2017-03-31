@@ -1,25 +1,5 @@
 #include "ring.h"
 
-ctx_t *create_ctx(uint32_t cpsr, uint32_t pc, uint32_t sp) {
-  ctx_t *new_ctx = malloc(sizeof(ctx_t));
-  new_ctx->cpsr = cpsr;
-  new_ctx->pc   = pc;
-  new_ctx->sp   = sp;
-
-  return new_ctx;
-}
-
-pcb_t *create_pcb(pid_t pid, int priority, ctx_t *ctx) {
-  pcb_t *new_pcb = malloc(sizeof(pcb_t));
-
-  new_pcb->pid      = pid;
-  new_pcb->priority = priority;
-
-  memcpy(&new_pcb->ctx, ctx, sizeof(ctx_t));
-
-  return new_pcb;
-}
-
 void set_first(Ring *ring) {
   ring->current = ring->first;
   move_fwd(ring);
@@ -30,12 +10,20 @@ void set_last(Ring *ring) {
   move_back(ring);
 }
 
+pid_t get_current_pipe_id(Ring *ring) {
+  return ((pipe_t*)ring->current->item)->pid;
+}
+
 pid_t get_current_pid(Ring *ring) {
-  return ring->current->pcb->pid;
+  return ((pcb_t*)ring->current->item)->pid;
+}
+
+pipe_t *get_current_pipe(Ring *ring) {
+  return ((pipe_t*)ring->current->item);
 }
 
 pcb_t *get_current_process(Ring *ring) {
-  return ring->current->pcb;
+  return ((pcb_t*)ring->current->item);
 }
 
 void move_fwd(Ring *ring) {
@@ -46,23 +34,23 @@ void move_back(Ring *ring) {
   ring->current = ring->current->prev;
 }
 
-Node *create_node(pcb_t *pcb, Node *next_node, Node *prev_node) {
+Node *create_node(void *item, Node *next_node, Node *prev_node) {
   Node *new_node = malloc(sizeof(Node));
   new_node->next = next_node;
   new_node->prev = prev_node;
-  new_node->pcb = pcb;
+  new_node->item = item;
 
   return new_node;
 }
 
-void insert_before(Ring *ring, pcb_t *pcb) {
-  Node *new_node = create_node(pcb, ring->current, ring->current->prev);
+void insert_before(Ring *ring, void *item) {
+  Node *new_node = create_node(item, ring->current, ring->current->prev);
   ring->current->prev->next = new_node;
   ring->current->prev = new_node;
 }
 
-void insert_after(Ring *ring, pcb_t *pcb) {
-  Node *new_node = create_node(pcb, ring->current->next, ring->current);
+void insert_after(Ring *ring, void *item) {
+  Node *new_node = create_node(item, ring->current->next, ring->current);
   ring->current->next->prev = new_node;
   ring->current->next = new_node;
 }
@@ -82,7 +70,7 @@ Ring *create_ring() {
 }
 
 bool is_sentinel(Node *node) {
-  if (node->pcb == NULL) {
+  if (node->item == NULL) {
     return true;
   }
   else {
@@ -122,7 +110,7 @@ void print_ring(Ring *ring, int max_num_to_print) {
 int locate_by_id(Ring *ring, pid_t id) {
   set_last(ring);
   while (!is_sentinel(ring->current)) {
-    if (ring->current->pcb->pid == id) {
+    if (((pcb_t*)ring->current->item)->pid == id) {
       return 1;
     }
     move_back(ring);
@@ -134,7 +122,7 @@ void move_to_end(Ring *ring) {
   Node *node_to_be_moved = ring->current;
   delete(ring);
   set_last(ring);
-  insert_after(ring, node_to_be_moved->pcb);
+  insert_after(ring, node_to_be_moved->item);
 }
 
 int get_ring_length(Ring *ring) {
@@ -165,8 +153,8 @@ void locate_highest_priority(Ring *ring) {
   int max_priority = 0;
   pid_t max_priority_pid = 0;
   while (!is_sentinel(ring->current)) {
-    if (ring->current->pcb->priority >= max_priority) {
-      max_priority = ring->current->pcb->priority;
+    if (((pcb_t*)ring->current->item)->priority >= max_priority) {
+      max_priority = ((pcb_t*)ring->current->item)->priority;
       max_priority_pid = get_current_pid(ring);
     }
     move_fwd(ring);
@@ -179,10 +167,10 @@ void age_processes(Ring *ring) {
   pid_t current_pid = get_current_pid(ring);
   set_last(ring);
   while (!is_sentinel(ring->current)) {
-    if (ring->current->pcb->pid == current_pid) {
-      ring->current->pcb->priority = 10;
+    if (((pcb_t*)ring->current->item)->pid == current_pid) {
+      ((pcb_t*)ring->current->item)->priority = 10;
     } else {
-      ring->current->pcb->priority += 5;
+      ((pcb_t*)ring->current->item)->priority += 5;
     }
     move_back(ring);
   }

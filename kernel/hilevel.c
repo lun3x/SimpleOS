@@ -9,12 +9,12 @@
  *   can be created, and neither is able to complete.
  */
 
-pipe_t pipes[MAX_PIPES];
-
+Ring *pipe_ring;
 Ring *pcb_ring;
 
 // current maximum allocated program id
 pid_t max_pid = 0;
+pid_t max_pipe_id = 0;
 
 // entry points for programs
 extern void main_P3();
@@ -25,6 +25,37 @@ extern void main_console();
 // location of top of stack for user programs
 extern uint32_t tos_user_progs;
 
+pipe_t *create_pipe(pid_t pid1, pid_t pid2, int value, status_t status) {
+  pipe_t *new_pipe = malloc(sizeof(pipe_t));
+  new_pipe->proc1  = pid1;
+  new_pipe->proc2  = pid2;
+  new_pipe->value  = value;
+  new_pipe->pid    = max_pipe_id;
+  new_pipe->status = status;
+  max_pipe_id++;
+
+  return new_pipe;
+}
+
+ctx_t *create_ctx(uint32_t cpsr, uint32_t pc, uint32_t sp) {
+  ctx_t *new_ctx = malloc(sizeof(ctx_t));
+  new_ctx->cpsr = cpsr;
+  new_ctx->pc   = pc;
+  new_ctx->sp   = sp;
+
+  return new_ctx;
+}
+
+pcb_t *create_pcb(pid_t pid, int priority, ctx_t *ctx) {
+  pcb_t *new_pcb = malloc(sizeof(pcb_t));
+
+  new_pcb->pid      = pid;
+  new_pcb->priority = priority;
+
+  memcpy(&new_pcb->ctx, ctx, sizeof(ctx_t));
+
+  return new_pcb;
+}
 
 // switch processes according to priority queue
 void scheduler(ctx_t *ctx) {
@@ -106,32 +137,12 @@ void hilevel_exit(ctx_t* ctx) {
 }
 
 
-// find index in pipes to put new pipe
-int find_free_pipe_index() {
-  for (int i = 0; i < MAX_PIPES; i++) {
-    if (pipes[i].status == CLOSED) {
-      return i;
-    }
-  }
-
-  return -1;
-}
-
-
 // create a pipe
 void hilevel_pipe_open(ctx_t *ctx) {
-  int free_pipe_index = find_free_pipe_index();
-
   // if space for free pipes
-  if (free_pipe_index >= 0) {
-    pipes[ free_pipe_index ].proc1  = (pid_t) ctx->gpr[0];
-    pipes[ free_pipe_index ].proc2  = (pid_t) ctx->gpr[1];
-    pipes[ free_pipe_index ].value  = -1;
-    pipes[ free_pipe_index ].id     = free_pipe_index;
-    pipes[ free_pipe_index ].status = OPEN;
-  }
-
-  ctx->gpr[0] = free_pipe_index;
+  pipe_t *new_pipe = create_pipe((pid_t) ctx->gpr[0], (pid_t) ctx->gpr[1], -1, OPEN);
+  insert_after(pipe_ring, new_pipe);
+  ctx->gpr[0] = new_pipe->pid;
 
   return;
 }
@@ -139,14 +150,13 @@ void hilevel_pipe_open(ctx_t *ctx) {
 
 // write data to pipe
 void hilevel_pipe_write( ctx_t *ctx ) {
-  int pipe_id = ctx->gpr[0];
-  int data    = ctx->gpr[1];
+  pid_t pipe_id = ctx->gpr[0];
+  int   data    = ctx->gpr[1];
 
-  if (pipes[ pipe_id ].status == OPEN) {
-    // check program has permission to write to pipe
-    if (pipes[ pipe_id ].proc1 == get_current_pid(pcb_ring) || pipes[ pipe_id ].proc2 == get_current_pid(pcb_ring)) {
-      pipes[ pipe_id ].value = data;
-    }
+  locate_by_id(pipe_ring, pipe_id);
+  // check program has permission to write to pipe
+  if (get_current_pipe(pipe_ring)->proc1 == get_current_pipe_id(pipe_ring) || get_current_pipe(pipe_ring)->proc2 == get_current_pipe_id(pipe_ring)) {
+    get_current_pipe(pipe_ring)->value = data;
   }
 
   return;
@@ -155,20 +165,20 @@ void hilevel_pipe_write( ctx_t *ctx ) {
 
 //read data from pipe
 void hilevel_pipe_read( ctx_t *ctx ) {
-  int pipe_id = ctx->gpr[0];
+  pid_t pipe_id = ctx->gpr[0];
   ctx->gpr[0] = -1;
 
-  if (pipes[ pipe_id ].status == OPEN) {
-    // check program has permission to read from pipe
-    if (pipes[ pipe_id ].proc1 == get_current_pid(pcb_ring) || pipes[ pipe_id ].proc2 == get_current_pid(pcb_ring)) {
+  locate_by_id(pipe_ring, pipe_id);
 
-      // return value to calling function
-      ctx->gpr[0] = pipes[ pipe_id ].value;
+  // check program has permission to read from pipe
+  if (get_current_pipe(pipe_ring)->proc1 == get_current_pipe_id(pipe_ring) || get_current_pipe(pipe_ring)->proc2 == get_current_pipe_id(pipe_ring)) {
 
-      // if overwrite flag on, reset pipe value to prevent multiple reads
-      if (ctx->gpr[1]) {
-        pipes[ pipe_id ].value = -1;
-      }
+    // return value to calling function
+    ctx->gpr[0] = get_current_pipe(pipe_ring)->value;
+
+    // if overwrite flag on, reset pipe value to prevent multiple reads
+    if (ctx->gpr[1]) {
+      get_current_pipe(pipe_ring)->value = -1;
     }
   }
 
@@ -180,13 +190,14 @@ void hilevel_pipe_read( ctx_t *ctx ) {
 void hilevel_pipe_close(ctx_t *ctx) {
   int pipe_id = ctx->gpr[0];
 
-  if (pipes[pipe_id].status == OPEN) {
-    // check program has permission to close pipe
-    if (pipes[pipe_id].proc1 == get_current_pid(pcb_ring) || pipes[ pipe_id ].proc2 == get_current_pid(pcb_ring)) {
-      pipes[pipe_id].value  = -1;
-      pipes[pipe_id].status = CLOSED;
-    }
+  locate_by_id(pipe_ring, pipe_id);
+
+  // check program has permission to close pipe
+  if (get_current_pipe(pipe_ring)->proc1 == get_current_pipe_id(pipe_ring) || get_current_pipe(pipe_ring)->proc2 == get_current_pipe_id(pipe_ring)) {
+    delete(pipe_ring);
   }
+
+  return;
 }
 
 
@@ -235,19 +246,15 @@ void hilevel_handler_rst( ctx_t* ctx ) {
   GICC0->CTLR         = 0x00000001; // enable GIC interface
   GICD0->CTLR         = 0x00000001; // enable GIC distributor
 
-  // initialise pipes to 0
-  for (int i = 0; i < MAX_PIPES; i++) {
-    memset( &pipes[i], 0, sizeof( pipe_t ) );
-    pipes[i].status = CLOSED;
-    pipes[i].id = -1;
-  }
-
   /*
    * - The CPSR value of 0x50 means the processor is switched into USR
    *   mode, with IRQ interrupts enabled, and
    * - The PC and SP values match the entry point and top of stack.
    */
   max_pid = 0;
+  max_pipe_id = 0;
+
+  pipe_ring = create_ring();
 
   pcb_ring = create_ring();
   // order = cpsr, pc, sp

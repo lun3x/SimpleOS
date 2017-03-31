@@ -10,7 +10,7 @@ SECTIONS {
   .heap : {
     end         = .;
     _heap_start = .;
-    .           = . + 0x00001000;
+    .           = . + 0x00010000;
     _heap_end   = .;
   }
   /* align       address (per AAPCS) */

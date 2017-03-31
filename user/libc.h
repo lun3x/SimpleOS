@@ -35,6 +35,7 @@ typedef int pid_t;
 #define SYS_PIPE_WRITE ( 0x08 )
 #define SYS_PIPE_READ  ( 0x09 )
 #define SYS_PIPE_CLOSE ( 0x10 )
+#define SYS_PIPE_CHECK ( 0x12 )
 
 #define SYS_ID         ( 0x11 )
 
@@ -83,7 +84,9 @@ extern void close_pipe(int id);
 // get pid for current process
 int get_proc_id();
 
-int  _read_pipe(int id, int overwrite);
+int  _read_pipe(int id);
+
+int  _check_pipe(int id);
 
 void _write_pipe(int id, int x);
 

@@ -3,7 +3,7 @@
 void main_philosopher() {
   int current_pid = get_proc_id();
   // assume console is 1st prog, waiter is 2nd
-  int philosopher_id = current_pid - 2;
+  int philosopher_id = current_pid - 3;
 
   int can_eat;
   while (1) {

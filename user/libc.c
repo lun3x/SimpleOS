@@ -157,16 +157,28 @@ void _write_pipe(int id, int x) {
   return;
 }
 
-int  _read_pipe(int id, int overwrite) {
+int  _check_pipe(int id) {
   int r;
 
   asm volatile( "mov r0, %2 \n" // assign r0 =  id
-                "mov r1, %3 \n" // assign r1 = overwrite
                 "svc %1     \n" // make system call SYS_PIPE_READ
                 "mov %0, r0 \n" // assign r0 =    r
               : "=r" (r)
-              : "I" (SYS_PIPE_READ), "r" (id), "r" (overwrite)
-              : "r0", "r1" );
+              : "I" (SYS_PIPE_READ), "r" (id)
+              : "r0" );
+
+  return r;
+}
+
+int  _read_pipe(int id) {
+  int r;
+
+  asm volatile( "mov r0, %2 \n" // assign r0 =  id
+                "svc %1     \n" // make system call SYS_PIPE_READ
+                "mov %0, r0 \n" // assign r0 =    r
+              : "=r" (r)
+              : "I" (SYS_PIPE_READ), "r" (id)
+              : "r0" );
 
   return r;
 }
@@ -179,7 +191,7 @@ void write_pipe(int id, int x) {
   volatile int response = x;
   while (response != -1) {
     // only check value of pipe, don't overwrite it
-    response = _read_pipe(id, 0);
+    response = _check_pipe(id);
     // if pipe has not been read from, yield to give other processes a chance
     if (response != -1) {
       yield();
@@ -191,7 +203,7 @@ int  read_pipe(int id) {
   // loop attempted reading from the pipe until another process writes to it
   int response = -1;
   while (response == -1) {
-    response = _read_pipe( id, 1 );
+    response = _read_pipe( id );
     // if pipe has not been written to, yield to give other processes a chance
     if (response == -1) {
       yield();

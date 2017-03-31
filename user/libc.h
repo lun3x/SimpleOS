@@ -49,36 +49,36 @@ typedef int pid_t;
 #define STDERR_FILENO ( 2 )
 
 // convert ASCII string x into integer r
-extern int  atoi( char* x        );
+extern int  atoi(char* x);
 // convert integer x into ASCII string r
-extern void itoa( char* r, int x );
+extern void itoa(char* r, int x);
 
 // cooperatively yield control of processor, i.e., invoke the scheduler
 extern void yield();
 
 // write n bytes from x to   the file descriptor fd; return bytes written
-extern int write( int fd, const void* x, size_t n );
+extern int  write(int fd, const void* x, size_t n);
 // read  n bytes into x from the file descriptor fd; return bytes read
-extern int  read( int fd,       void* x, size_t n );
+extern int  read(int fd, void* x,       size_t n);
 
 // perform fork, returning 0 iff. child or > 0 iff. parent process
 extern int  fork();
 // perform exit, i.e., terminate process with status x
-extern void exit(       int x );
+extern void exit(int x );
 // perform exec, i.e., start executing program at address x
-extern void exec( const void* x );
+extern void exec(const void* x);
 
 // signal process identified by pid with signal x
-extern int  kill( pid_t pid, int x );
+extern int  kill(pid_t pid, int x);
 
 // create pipe for IPC between processes pid1 and pid2
-extern int open_pipe( pid_t pid1, pid_t pid2 );
+extern int  open_pipe(pid_t pid1, pid_t pid2);
 // write data to pipe
-extern void write_pipe( int id, int x );
+extern void write_pipe(int id, int x);
 // read data from pipe
-extern int read_pipe( int id );
+extern int  read_pipe(int id);
 // close pipe
-extern void close_pipe( int id );
+extern void close_pipe(int id);
 
 // get pid for current process
 int get_proc_id();

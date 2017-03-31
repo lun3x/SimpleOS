@@ -16,18 +16,6 @@ typedef struct ring {
   Node *current;
 } Ring;
 
-// Get the pcb id of the pcb at the current location.
-//int get_id(Ring *ring);
-
-// Get the pcb name of the pcb at the current location.
-//char *get_name(Ring *ring);
-
-// Set the pcb name of the given pcb to the given string.
-//void set_name(pcb_t *pcb, char name[20]);
-
-// Set the id of the given pcb to the given id.
-//void set_id(pcb_t *pcb, int id);
-
 ctx_t *create_ctx(uint32_t cpsr, uint32_t pc, uint32_t sp);
 
 // Return a pointer to a new pcb with given pcb id and pcb name.

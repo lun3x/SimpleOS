@@ -1,6 +1,6 @@
 #include "libc.h"
 
-int  atoi( char* x        ) {
+int  atoi(char* x) {
   char* p = x; bool s = false; int r = 0;
 
   if     ( *p == '-' ) {
@@ -18,7 +18,7 @@ int  atoi( char* x        ) {
   return r;
 }
 
-void itoa( char* r, int x ) {
+void itoa(char* r, int x) {
   char* p = r; int t, n;
 
   if( x < 0 ) {
@@ -54,7 +54,7 @@ void yield() {
   return;
 }
 
-int write( int fd, const void* x, size_t n ) {
+int  write(int fd, const void* x, size_t n) {
   int r;
 
   asm volatile( "mov r0, %2 \n" // assign r0 = fd
@@ -69,7 +69,7 @@ int write( int fd, const void* x, size_t n ) {
   return r;
 }
 
-int  read( int fd,       void* x, size_t n ) {
+int  read(int fd,       void* x, size_t n) {
   int r;
 
   asm volatile( "mov r0, %2 \n" // assign r0 = fd
@@ -84,7 +84,7 @@ int  read( int fd,       void* x, size_t n ) {
   return r;
 }
 
-int fork( int priority ) {
+int  fork(int priority) {
   int r;
 
   asm volatile( "mov r0, %2 \n" // assign r0 to priority
@@ -97,7 +97,7 @@ int fork( int priority ) {
   return r;
 }
 
-void exit( int x ) {
+void exit(int x) {
   asm volatile( "mov r0, %1 \n" // assign r0 =  x
                 "svc %0     \n" // make system call SYS_EXIT
               :
@@ -107,7 +107,7 @@ void exit( int x ) {
   return;
 }
 
-void exec( const void* x ) {
+void exec(const void* x) {
   asm volatile( "mov r0, %1 \n" // assign r0 = x
                 "svc %0     \n" // make system call SYS_EXEC
               :
@@ -117,7 +117,7 @@ void exec( const void* x ) {
   return;
 }
 
-int kill( int pid, int x ) {
+int  kill(int pid, int x) {
   int r;
 
   asm volatile( "mov r0, %2 \n" // assign r0 =  pid
@@ -131,7 +131,7 @@ int kill( int pid, int x ) {
   return r;
 }
 
-int open_pipe( pid_t pid1, pid_t pid2 ) {
+int  open_pipe(pid_t pid1, pid_t pid2) {
   int r;
 
   asm volatile( "mov r0, %2 \n" // assign r0 to pid1
@@ -145,7 +145,7 @@ int open_pipe( pid_t pid1, pid_t pid2 ) {
   return r;
 }
 
-void _write_pipe( int id, int x ) {
+void _write_pipe(int id, int x) {
 
   asm volatile( "mov r0, %1 \n" // assign r0 =  id
                 "mov r1, %2 \n" // assign r1 =   x
@@ -157,7 +157,7 @@ void _write_pipe( int id, int x ) {
   return;
 }
 
-int _read_pipe( int id, int overwrite ) {
+int  _read_pipe(int id, int overwrite) {
   int r;
 
   asm volatile( "mov r0, %2 \n" // assign r0 =  id
@@ -171,24 +171,28 @@ int _read_pipe( int id, int overwrite ) {
   return r;
 }
 
-void write_pipe( int id, int x ) {
+void write_pipe(int id, int x) {
   _write_pipe(id, x);
   yield();
 
+  // loop checking the pipe until another process reads from it
   int response = x;
   while (response != -1) {
-    response = _read_pipe(id, 0); //check value in pipe without overwrite
-    // if (response != -1) {
-    //   yield();
-    // }
+    // only check value of pipe, don't overwrite it
+    response = _read_pipe(id, 0);
+    // if pipe has not been read from, yield to give other processes a chance
+    if (response != -1) {
+      yield();
+    }
   }
 }
 
-
-int read_pipe( int id ) {
+int  read_pipe(int id) {
+  // loop attempted reading from the pipe until another process writes to it
   int response = -1;
   while (response == -1) {
     response = _read_pipe( id, 1 );
+    // if pipe has not been written to, yield to give other processes a chance
     if (response == -1) {
       yield();
     }
@@ -196,7 +200,7 @@ int read_pipe( int id ) {
   return response;
 }
 
-void close_pipe( int id ) {
+void close_pipe(int id) {
   asm volatile( "mov r0, %1 \n" // assign r0 =  id
                 "svc %0     \n" // make system call SYS_KILL
               :
@@ -206,7 +210,7 @@ void close_pipe( int id ) {
   return;
 }
 
-int get_proc_id() {
+int  get_proc_id() {
   int r;
 
   asm volatile( "svc %1     \n" // make svc call SYS_ID

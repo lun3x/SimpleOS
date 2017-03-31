@@ -160,7 +160,8 @@ void hilevel_pipe_write( ctx_t *ctx ) {
 // check data in pipe
 void hilevel_pipe_check( ctx_t *ctx ) {
   pid_t pipe_id = ctx->gpr[0];
-  ctx->gpr[0] = -1;
+  int c_value = ctx->gpr[1];
+  ctx->gpr[0] = 0;
 
    int success = locate_by_pipe_id(pipe_ring, pipe_id);
 
@@ -169,7 +170,11 @@ void hilevel_pipe_check( ctx_t *ctx ) {
     if (get_current_pipe(pipe_ring)->proc1 == get_current_pipe_id(pipe_ring) || get_current_pipe(pipe_ring)->proc2 == get_current_pipe_id(pipe_ring)) {
 
       // return value to calling function
-      ctx->gpr[0] = get_current_pipe(pipe_ring)->value;
+      if (get_current_pipe(pipe_ring)->value == c_value) {
+        ctx->gpr[0] = 1;
+      } else {
+        ctx->gpr[0] = 0;
+      }
     }
   }
 

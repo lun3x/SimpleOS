@@ -86,7 +86,7 @@ int get_proc_id();
 
 int  _read_pipe(int id);
 
-int  _check_pipe(int id);
+int  _check_pipe(int id, int c_val);
 
 void _write_pipe(int id, int x);
 

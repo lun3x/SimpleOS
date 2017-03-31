@@ -157,15 +157,16 @@ void _write_pipe(int id, int x) {
   return;
 }
 
-int  _check_pipe(int id) {
+int  _check_pipe(int id, int c_val) {
   int r;
 
   asm volatile( "mov r0, %2 \n" // assign r0 =  id
+                "mov r1, %3 \n" // assign r0 =  check cval
                 "svc %1     \n" // make system call SYS_PIPE_READ
                 "mov %0, r0 \n" // assign r0 =    r
               : "=r" (r)
-              : "I" (SYS_PIPE_READ), "r" (id)
-              : "r0" );
+              : "I" (SYS_PIPE_READ), "r" (id), "r" (c_val)
+              : "r0", "r1" );
 
   return r;
 }
@@ -188,12 +189,12 @@ void write_pipe(int id, int x) {
   yield();
 
   // loop checking the pipe until another process reads from it
-  volatile int response = x;
-  while (response != -1) {
+  int read_from = 0;
+  while (read_from == 0) {
     // only check value of pipe, don't overwrite it
-    response = _check_pipe(id);
+    read_from = _check_pipe(id, x);
     // if pipe has not been read from, yield to give other processes a chance
-    if (response != -1) {
+    if (read_from == 0) {
       yield();
     }
   }

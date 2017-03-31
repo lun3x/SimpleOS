@@ -12,14 +12,7 @@
 Ring *pipe_ring;
 Ring *pcb_ring;
 
-// current maximum allocated program id
-pid_t max_pid = 0;
-pid_t max_pipe_id = 0;
-
 // entry points for programs
-extern void main_P3();
-extern void main_P4();
-extern void main_P5();
 extern void main_console();
 
 // location of top of stack for user programs
@@ -30,9 +23,8 @@ pipe_t *create_pipe(pid_t pid1, pid_t pid2, int value, status_t status) {
   new_pipe->proc1  = pid1;
   new_pipe->proc2  = pid2;
   new_pipe->value  = value;
-  new_pipe->pid    = max_pipe_id;
+  new_pipe->pid    = get_max_pipe_id(pipe_ring) + 1;
   new_pipe->status = status;
-  max_pipe_id++;
 
   return new_pipe;
 }
@@ -75,8 +67,7 @@ void scheduler(ctx_t *ctx) {
 
 // create new child process identical to parent
 void hilevel_fork(ctx_t *ctx) {
-  pcb_t *child_pcb = create_pcb(max_pid, ctx->gpr[0], ctx);
-  max_pid++;
+  pcb_t *child_pcb = create_pcb(get_max_pid(pcb_ring) + 1, ctx->gpr[0], ctx);
 
   // insert new child pcb into ring after current pcb
   insert_after(pcb_ring, child_pcb);
@@ -134,6 +125,7 @@ void hilevel_exec(ctx_t* ctx) {
 // find program in pcb list and remove it
 void hilevel_exit(ctx_t* ctx) {
   delete(pcb_ring);
+  locate_next_pid(pcb_ring);
 }
 
 
@@ -153,7 +145,7 @@ void hilevel_pipe_write( ctx_t *ctx ) {
   pid_t pipe_id = ctx->gpr[0];
   int   data    = ctx->gpr[1];
 
-  locate_by_id(pipe_ring, pipe_id);
+  locate_by_pipe_id(pipe_ring, pipe_id);
   // check program has permission to write to pipe
   if (get_current_pipe(pipe_ring)->proc1 == get_current_pipe_id(pipe_ring) || get_current_pipe(pipe_ring)->proc2 == get_current_pipe_id(pipe_ring)) {
     get_current_pipe(pipe_ring)->value = data;
@@ -168,7 +160,7 @@ void hilevel_pipe_read( ctx_t *ctx ) {
   pid_t pipe_id = ctx->gpr[0];
   ctx->gpr[0] = -1;
 
-  locate_by_id(pipe_ring, pipe_id);
+  locate_by_pipe_id(pipe_ring, pipe_id);
 
   // check program has permission to read from pipe
   if (get_current_pipe(pipe_ring)->proc1 == get_current_pipe_id(pipe_ring) || get_current_pipe(pipe_ring)->proc2 == get_current_pipe_id(pipe_ring)) {
@@ -190,7 +182,7 @@ void hilevel_pipe_read( ctx_t *ctx ) {
 void hilevel_pipe_close(ctx_t *ctx) {
   int pipe_id = ctx->gpr[0];
 
-  locate_by_id(pipe_ring, pipe_id);
+  locate_by_pipe_id(pipe_ring, pipe_id);
 
   // check program has permission to close pipe
   if (get_current_pipe(pipe_ring)->proc1 == get_current_pipe_id(pipe_ring) || get_current_pipe(pipe_ring)->proc2 == get_current_pipe_id(pipe_ring)) {
@@ -251,19 +243,15 @@ void hilevel_handler_rst( ctx_t* ctx ) {
    *   mode, with IRQ interrupts enabled, and
    * - The PC and SP values match the entry point and top of stack.
    */
-  max_pid = 0;
-  max_pipe_id = 0;
-
   pipe_ring = create_ring();
+  pcb_ring  = create_ring();
 
-  pcb_ring = create_ring();
   // order = cpsr, pc, sp
   ctx_t *initial_ctx = create_ctx((uint32_t) 0x50, (uint32_t) &main_console, (uint32_t) &tos_user_progs);
 
   // set up initial process
   // order = pid, priority, status, ctx
-  pcb_t *initial_pcb = create_pcb(max_pid, 10, initial_ctx);
-  max_pid++;
+  pcb_t *initial_pcb = create_pcb(get_max_pid(pcb_ring) + 1, 10, initial_ctx);
 
   insert_after(pcb_ring, initial_pcb);
   // set the current pointer to inital process

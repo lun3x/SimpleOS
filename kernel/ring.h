@@ -84,4 +84,10 @@ void age_processes(Ring *ring);
 // Moves current to highest priority pcb
 void locate_highest_priority(Ring *ring);
 
+// Returns the largest pid in use
+int get_max_pid(Ring *ring);
+
+// Returns the largest pipe_id in use
+int get_max_pipe_id(Ring *ring);
+
 #endif

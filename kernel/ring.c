@@ -88,12 +88,12 @@ void locate_next_pid(Ring *ring) {
 
 void delete(Ring *ring) {
   if (!is_sentinel(ring->current)) {
-    Node *new_current;
+    Node *old_current;
     ring->current->next->prev = ring->current->prev;
     ring->current->prev->next = ring->current->next;
-    new_current = ring->current;
+    old_current = ring->current;
     free(ring->current);
-    ring->current = new_current->next;
+    ring->current = old_current->prev;
   }
 }
 
@@ -111,6 +111,17 @@ int locate_by_id(Ring *ring, pid_t id) {
   set_last(ring);
   while (!is_sentinel(ring->current)) {
     if (((pcb_t*)ring->current->item)->pid == id) {
+      return 1;
+    }
+    move_back(ring);
+  }
+  return 0;
+}
+
+int locate_by_pipe_id(Ring *ring, pid_t id) {
+  set_last(ring);
+  while (!is_sentinel(ring->current)) {
+    if (((pipe_t*)ring->current->item)->pid == id) {
       return 1;
     }
     move_back(ring);
@@ -176,4 +187,36 @@ void age_processes(Ring *ring) {
   }
 
   locate_by_id(ring, current_pid);
+}
+
+int get_max_pid(Ring *ring) {
+  pid_t current_pid = get_current_pid(ring);
+  pid_t max_pid = 0;
+  set_last(ring);
+  while (!is_sentinel(ring->current)) {
+    if (((pcb_t*)ring->current->item)->pid > max_pid) {
+      max_pid = ((pcb_t*)ring->current->item)->pid;
+    }
+    move_back(ring);
+  }
+
+  locate_by_id(ring, current_pid);
+
+  return max_pid;
+}
+
+int get_max_pipe_id(Ring *ring) {
+  pid_t current_pid = get_current_pid(ring);
+  pid_t max_pid = 0;
+  set_last(ring);
+  while (!is_sentinel(ring->current)) {
+    if (((pipe_t*)ring->current->item)->pid > max_pid) {
+      max_pid = ((pipe_t*)ring->current->item)->pid;
+    }
+    move_back(ring);
+  }
+
+  locate_by_pipe_id(ring, current_pid);
+
+  return max_pid;
 }

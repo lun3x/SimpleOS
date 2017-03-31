@@ -179,9 +179,9 @@ void age_processes(Ring *ring) {
   set_last(ring);
   while (!is_sentinel(ring->current)) {
     if (((pcb_t*)ring->current->item)->pid == current_pid) {
-      ((pcb_t*)ring->current->item)->priority = 10;
+      ((pcb_t*)ring->current->item)->priority = ((pcb_t*)ring->current->item)->default_priority;
     } else {
-      ((pcb_t*)ring->current->item)->priority += 5;
+      ((pcb_t*)ring->current->item)->priority += 1;
     }
     move_back(ring);
   }

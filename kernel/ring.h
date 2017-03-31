@@ -60,6 +60,8 @@ void print_ring(Ring *ring, int max_num_to_print);
 // Return either 1 or 0 if the operation is successful or not respectively.
 int locate_by_id(Ring *ring, pid_t id);
 
+int locate_by_pipe_id(Ring *ring, pid_t id);
+
 // Move the node at the current pointer to the end of the ring.
 void move_to_end(Ring *ring);
 

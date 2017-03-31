@@ -166,7 +166,7 @@ int  _read_pipe(int id, int overwrite) {
                 "mov %0, r0 \n" // assign r0 =    r
               : "=r" (r)
               : "I" (SYS_PIPE_READ), "r" (id), "r" (overwrite)
-              : "r0" );
+              : "r0", "r1" );
 
   return r;
 }

@@ -43,6 +43,7 @@ pcb_t *create_pcb(pid_t pid, int priority, ctx_t *ctx) {
 
   new_pcb->pid      = pid;
   new_pcb->priority = priority;
+  new_pcb->default_priority = priority;
 
   memcpy(&new_pcb->ctx, ctx, sizeof(ctx_t));
 
@@ -145,10 +146,12 @@ void hilevel_pipe_write( ctx_t *ctx ) {
   pid_t pipe_id = ctx->gpr[0];
   int   data    = ctx->gpr[1];
 
-  locate_by_pipe_id(pipe_ring, pipe_id);
-  // check program has permission to write to pipe
-  if (get_current_pipe(pipe_ring)->proc1 == get_current_pipe_id(pipe_ring) || get_current_pipe(pipe_ring)->proc2 == get_current_pipe_id(pipe_ring)) {
-    get_current_pipe(pipe_ring)->value = data;
+  int success = locate_by_pipe_id(pipe_ring, pipe_id);
+  if (success) {
+    // check program has permission to write to pipe
+    if (get_current_pipe(pipe_ring)->proc1 == get_current_pipe_id(pipe_ring) || get_current_pipe(pipe_ring)->proc2 == get_current_pipe_id(pipe_ring)) {
+      get_current_pipe(pipe_ring)->value = data;
+    }
   }
 
   return;
@@ -160,17 +163,19 @@ void hilevel_pipe_read( ctx_t *ctx ) {
   pid_t pipe_id = ctx->gpr[0];
   ctx->gpr[0] = -1;
 
-  locate_by_pipe_id(pipe_ring, pipe_id);
+   int success = locate_by_pipe_id(pipe_ring, pipe_id);
 
-  // check program has permission to read from pipe
-  if (get_current_pipe(pipe_ring)->proc1 == get_current_pipe_id(pipe_ring) || get_current_pipe(pipe_ring)->proc2 == get_current_pipe_id(pipe_ring)) {
+   if (success) {
+    // check program has permission to read from pipe
+    if (get_current_pipe(pipe_ring)->proc1 == get_current_pipe_id(pipe_ring) || get_current_pipe(pipe_ring)->proc2 == get_current_pipe_id(pipe_ring)) {
 
-    // return value to calling function
-    ctx->gpr[0] = get_current_pipe(pipe_ring)->value;
+      // return value to calling function
+      ctx->gpr[0] = get_current_pipe(pipe_ring)->value;
 
-    // if overwrite flag on, reset pipe value to prevent multiple reads
-    if (ctx->gpr[1]) {
-      get_current_pipe(pipe_ring)->value = -1;
+      // if overwrite flag on, reset pipe value to prevent multiple reads
+      if (ctx->gpr[1]) {
+        get_current_pipe(pipe_ring)->value = -1;
+      }
     }
   }
 
@@ -182,11 +187,13 @@ void hilevel_pipe_read( ctx_t *ctx ) {
 void hilevel_pipe_close(ctx_t *ctx) {
   int pipe_id = ctx->gpr[0];
 
-  locate_by_pipe_id(pipe_ring, pipe_id);
+  int success = locate_by_pipe_id(pipe_ring, pipe_id);
 
-  // check program has permission to close pipe
-  if (get_current_pipe(pipe_ring)->proc1 == get_current_pipe_id(pipe_ring) || get_current_pipe(pipe_ring)->proc2 == get_current_pipe_id(pipe_ring)) {
-    delete(pipe_ring);
+  if (success) {
+    // check program has permission to close pipe
+    if (get_current_pipe(pipe_ring)->proc1 == get_current_pipe_id(pipe_ring) || get_current_pipe(pipe_ring)->proc2 == get_current_pipe_id(pipe_ring)) {
+      delete(pipe_ring);
+    }
   }
 
   return;
@@ -227,7 +234,7 @@ void hilevel_handler_rst( ctx_t* ctx ) {
    * - enabling IRQ interrupts.
    */
 
-  TIMER0->Timer1Load  = 0x00100000; // select period = 2^20 ticks ~= 1 sec
+  TIMER0->Timer1Load  = 0x00001000; // select period = 2^20 ticks ~= 1 sec
   TIMER0->Timer1Ctrl  = 0x00000002; // select 32-bit   timer
   TIMER0->Timer1Ctrl |= 0x00000040; // select periodic timer
   TIMER0->Timer1Ctrl |= 0x00000020; // enable          timer interrupt

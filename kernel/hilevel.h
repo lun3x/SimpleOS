@@ -50,6 +50,7 @@ typedef struct {
   pid_t pid;
   ctx_t ctx;
   int priority;
+  int default_priority;
 } pcb_t;
 
 typedef struct {

@@ -55,6 +55,7 @@ typedef struct {
   ctx_t ctx;
   status_t status;
   int priority;
+  int default_priority;
 } pcb_t;
 
 typedef struct {

@@ -87,7 +87,7 @@ void age_processes(int current_pcb_index) {
       pcb[i].priority++;
     }
     else if (i == current_pcb_index) {
-      pcb[i].priority = 10;
+      pcb[i].priority = pcb[i].default_priority;
     }
   }
 }
@@ -119,6 +119,7 @@ void hilevel_fork( ctx_t *ctx ) {
 
   pcb[ free_pcb_index ].pid = max_pid;          // update new process in pcb table with max pid
   pcb[ free_pcb_index ].priority = ctx->gpr[0]; // update new process with correct priority
+  pcb[ free_pcb_index ].default_priority = pcb[ free_pcb_index ].priority;
   max_pid++;                                    // increment max_pid
 
   int new_tos     = (int) &tos_user_progs - free_pcb_index               * STACK_SIZE; // find tos for new program
@@ -310,6 +311,7 @@ void hilevel_handler_rst( ctx_t* ctx ) {
   pcb[ 0 ].ctx.pc   = ( uint32_t )( &main_console );
   pcb[ 0 ].ctx.sp   = ( uint32_t )( &tos_user_progs  );
   pcb[ 0 ].priority = 10;
+  pcb[ 0 ].default_priority = 10;
   pcb[ 0 ].status   = EXECUTING;
   max_pid++;
 

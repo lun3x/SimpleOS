@@ -154,21 +154,6 @@ void move_to_end(Ring *ring) {
   insert_after(ring, node_to_be_moved->pcb);
 }
 
-void error(int value) {
-  if (value == 1) {
-    //printf("Non existant pcb!\n");
-  }
-  else if (value == 2) {
-    //printf("Incorrect pcb name for that ID!\n");
-  }
-  else if (value == 3) {
-    //printf("Invalid pcb ID!\n");
-  }
-  else {
-    //printf("Unknown error!\n");
-  }
-}
-
 int get_ring_length(Ring *ring) {
   pid_t current_pid = get_current_pid(ring);
   set_last(ring);
@@ -212,12 +197,9 @@ void age_processes(Ring *ring) {
   set_last(ring);
   while (!is_sentinel(ring->current)) {
     if (ring->current->pcb->pid == current_pid) {
-      ring->current->pcb->priority--;
+      ring->current->pcb->priority = 10;
     } else {
-      ring->current->pcb->priority++;
-    }
-    if (ring->current->pcb->priority > 32) {
-      ring->current->pcb->priority = 31;
+      ring->current->pcb->priority += 5;
     }
     move_back(ring);
   }

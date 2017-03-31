@@ -6,6 +6,7 @@ pid_t philosopher_pids[PROBLEM_NUM];
 int philosopher_pipe_ids[PROBLEM_NUM];
 
 void main_waiter() {
+  int solution_type = 0;
   pid_t proc_id = get_proc_id();
 
   for (int i = 0; i < PROBLEM_NUM; i++) {
@@ -34,30 +35,37 @@ void main_waiter() {
   //   yield();
   // }
 
-  while (1) {
-    // write_pipe(0, 1);
-    // write_pipe(1, 0);
-    // write_pipe(2, 1);
-    // write_pipe(3, 0);
+  solution_type = PROBLEM_NUM % 2;
 
-    for (int i = 0; i < PROBLEM_NUM; i++) {
-      if (i % 2 == 0) write_pipe(i, 0);
-      else            write_pipe(i, 1);
+  if (solution_type == 0) {
+    while (1) {
+      for (int i = 0; i < PROBLEM_NUM; i++) {
+        if (i % 2 == 0) write_pipe(i, 0);
+        else            write_pipe(i, 1);
+      }
+
+      write( STDOUT_FILENO, "\n", 2 );
+
+      for (int i = 0; i < PROBLEM_NUM; i++) {
+        if (i % 2 == 1) write_pipe(i, 0);
+        else            write_pipe(i, 1);
+      }
+
+      write( STDOUT_FILENO, "\n", 2 );
     }
+  } else {
+    int eating_philosopher = 0;
 
-    write( STDOUT_FILENO, "\n", 2 );
+    while (1) {
+      for (int i = 0; i < PROBLEM_NUM; i++) {
+        if (i == eating_philosopher) write_pipe(i, 1);
+        else                         write_pipe(i, 0);
+      }
 
-    // write_pipe(0, 0);
-    // write_pipe(1, 1);
-    // write_pipe(2, 0);
-    // write_pipe(3, 1);
+      eating_philosopher = (eating_philosopher + 1) % PROBLEM_NUM;
 
-    for (int i = 0; i < PROBLEM_NUM; i++) {
-      if (i % 2 == 1) write_pipe(i, 0);
-      else            write_pipe(i, 1);
+      write( STDOUT_FILENO, "\n", 2 );
     }
-
-    write( STDOUT_FILENO, "\n", 2 );
   }
 
   exit( EXIT_SUCCESS );

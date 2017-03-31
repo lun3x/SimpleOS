@@ -1,13 +1,16 @@
 #include "waiter.h"
 
-philosopher_pipe_ids[PHILOSOPHER_NUM];
+int philosopher_pipe_ids[PHILOSOPHER_NUM];
+int philosopher_pids[PHILOSOPHER_NUM];
+
+extern void main_philosopher();
 
 void main_waiter() {
   pid_t proc_id = get_proc_id();
 
   // loop over fork to create correct number of child processes
   for (int i = 0; i < PHILOSOPHER_NUM; i++) {
-    fork(10);
+    philosopher_pids[i] = fork(10);
 
     philosopher_pipe_ids[i] = open_pipe(proc_id, philosopher_pids[i]);
 

@@ -33,8 +33,8 @@ int is_prime( uint32_t x ) {
 
 void main_P3() {
   int pipe_id = open_pipe(1, 2);
-  write_pipe(pipe_id, 6);
+  _write_pipe(pipe_id, 6);
 
-  write( STDOUT_FILENO, "endP3", 5 );
+  write( STDOUT_FILENO, "7", 2 );
   exit( EXIT_SUCCESS );
 }

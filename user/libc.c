@@ -176,7 +176,7 @@ void write_pipe(int id, int x) {
   yield();
 
   // loop checking the pipe until another process reads from it
-  int response = x;
+  volatile int response = x;
   while (response != -1) {
     // only check value of pipe, don't overwrite it
     response = _read_pipe(id, 0);

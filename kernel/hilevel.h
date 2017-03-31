@@ -31,8 +31,8 @@
  * - a type that captures a process PCB.
  */
 
-#define MAX_PROGS  5
-#define MAX_PIPES  2
+#define MAX_PROGS  20
+#define MAX_PIPES  20
 #define STACK_SIZE 0x00005000
 
 typedef int pid_t;
@@ -49,7 +49,6 @@ typedef enum {
 typedef struct {
   pid_t pid;
   ctx_t ctx;
-  status_t status;
   int priority;
 } pcb_t;
 

@@ -19,7 +19,7 @@ typedef struct ring {
 ctx_t *create_ctx(uint32_t cpsr, uint32_t pc, uint32_t sp);
 
 // Return a pointer to a new pcb with given pcb id and pcb name.
-pcb_t *create_pcb(pid_t pid, int priority, status_t status, ctx_t *ctx);
+pcb_t *create_pcb(pid_t pid, int priority, ctx_t *ctx);
 
 // Set the pointer to the current pcb, to the first pcb in the ring.
 void set_first(Ring *ring);

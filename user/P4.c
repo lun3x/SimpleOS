@@ -30,7 +30,7 @@ uint32_t gcd( uint32_t x, uint32_t y ) {
 // }
 
 void main_P4() {
-  int received = read_pipe(0);
+  int received = _read_pipe(0, 1);
 
   char rec_str[2];
   itoa(rec_str, received);

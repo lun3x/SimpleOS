@@ -9,9 +9,6 @@
  *   can be created, and neither is able to complete.
  */
 
-// set of program control blocks, pointer to current pcb
-//pcb_t pcb[ MAX_PROGS ], *current = NULL;
-
 pipe_t pipes[MAX_PIPES];
 
 Ring *pcb_ring;
@@ -47,7 +44,7 @@ void scheduler(ctx_t *ctx) {
 
 // create new child process identical to parent
 void hilevel_fork(ctx_t *ctx) {
-  pcb_t *child_pcb = create_pcb(max_pid, ctx->gpr[0], EXECUTING, ctx);
+  pcb_t *child_pcb = create_pcb(max_pid, ctx->gpr[0], ctx);
   max_pid++;
 
   // insert new child pcb into ring after current pcb
@@ -74,9 +71,6 @@ void hilevel_fork(ctx_t *ctx) {
   // return pid of child process to parent process
   ctx->gpr[0] = child_pcb->pid;
 
-  // set status of new child process to EXECUTING
-  child_pcb->status = EXECUTING;
-
   return;
 }
 
@@ -86,7 +80,7 @@ void hilevel_exec(ctx_t* ctx) {
   // get current top of stack
   int current_tos = (int) &tos_user_progs - get_current_pid(pcb_ring) * STACK_SIZE;
 
-  // initialise stack to zeros for security
+  // initialise stack zeros for security
   memset((void *) current_tos - STACK_SIZE,
          0,
          STACK_SIZE);
@@ -241,6 +235,13 @@ void hilevel_handler_rst( ctx_t* ctx ) {
   GICC0->CTLR         = 0x00000001; // enable GIC interface
   GICD0->CTLR         = 0x00000001; // enable GIC distributor
 
+  // initialise pipes to 0
+  for (int i = 0; i < MAX_PIPES; i++) {
+    memset( &pipes[i], 0, sizeof( pipe_t ) );
+    pipes[i].status = CLOSED;
+    pipes[i].id = -1;
+  }
+
   /*
    * - The CPSR value of 0x50 means the processor is switched into USR
    *   mode, with IRQ interrupts enabled, and
@@ -254,7 +255,7 @@ void hilevel_handler_rst( ctx_t* ctx ) {
 
   // set up initial process
   // order = pid, priority, status, ctx
-  pcb_t *initial_pcb = create_pcb(max_pid, 10, EXECUTING, initial_ctx);
+  pcb_t *initial_pcb = create_pcb(max_pid, 10, initial_ctx);
   max_pid++;
 
   insert_after(pcb_ring, initial_pcb);
@@ -265,13 +266,6 @@ void hilevel_handler_rst( ctx_t* ctx ) {
   memcpy(ctx,
          &initial_pcb->ctx,
          sizeof(ctx_t));
-
-  // initialise pipes to 0
-  for (int i = 0; i < MAX_PIPES; i++) {
-    memset( &pipes[i], 0, sizeof( pipe_t ) );
-    pipes[i].status = CLOSED;
-    pipes[i].id = -1;
-  }
 
   int_enable_irq();
 

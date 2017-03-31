@@ -9,12 +9,11 @@ ctx_t *create_ctx(uint32_t cpsr, uint32_t pc, uint32_t sp) {
   return new_ctx;
 }
 
-pcb_t *create_pcb(pid_t pid, int priority, status_t status, ctx_t *ctx) {
+pcb_t *create_pcb(pid_t pid, int priority, ctx_t *ctx) {
   pcb_t *new_pcb = malloc(sizeof(pcb_t));
 
   new_pcb->pid      = pid;
   new_pcb->priority = priority;
-  new_pcb->status   = status;
 
   memcpy(&new_pcb->ctx, ctx, sizeof(ctx_t));
 
@@ -162,7 +161,7 @@ int get_current_pos_in_ring(Ring *ring) {
 }
 
 void locate_highest_priority(Ring *ring) {
-  set_last(ring);
+  set_first(ring);
   int max_priority = 0;
   pid_t max_priority_pid = 0;
   while (!is_sentinel(ring->current)) {
@@ -170,7 +169,7 @@ void locate_highest_priority(Ring *ring) {
       max_priority = ring->current->pcb->priority;
       max_priority_pid = get_current_pid(ring);
     }
-    move_back(ring);
+    move_fwd(ring);
   }
 
   locate_by_id(ring, max_priority_pid);

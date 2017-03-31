@@ -83,4 +83,8 @@ extern void close_pipe(int id);
 // get pid for current process
 int get_proc_id();
 
+int  _read_pipe(int id, int overwrite);
+
+void _write_pipe(int id, int x);
+
 #endif
